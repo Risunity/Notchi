@@ -10,26 +10,6 @@
         TextOptions.TextFormattingMode="Display">
 
     <Window.Resources>
-        <Style x:Key="QrCloseButton" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Focusable" Value="False"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#2C2C2E"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </Window.Resources>
 
     <Border Background="#1C1C1E" BorderBrush="#2E2E30" BorderThickness="1"
@@ -48,7 +28,7 @@
                            FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 <Button x:Name="CloseButton" Width="20" Height="20"
                         HorizontalAlignment="Right" VerticalAlignment="Center"
-                        Style="{StaticResource QrCloseButton}"
+                        Style="{DynamicResource CloseButton}" Background="Transparent" BorderThickness="0"
                         Content="&#x2715;" FontSize="10" Foreground="#9A9A9E"/>
             </Grid>
 

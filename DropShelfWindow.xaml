@@ -10,32 +10,6 @@
         TextOptions.TextFormattingMode="Display">
 
     <Window.Resources>
-        <Style x:Key="ShelfCloseButton" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Focusable" Value="False"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                CornerRadius="6">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#2C2C2E"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#3A3A3E"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
         <Style x:Key="ShelfIconButton" TargetType="Button">
             <Setter Property="Width" Value="22"/>
             <Setter Property="Height" Value="22"/>
@@ -127,7 +101,7 @@
 
                 <Button x:Name="CloseButton" Width="18" Height="18"
                         HorizontalAlignment="Right" VerticalAlignment="Center"
-                        Style="{StaticResource ShelfCloseButton}"
+                        Style="{DynamicResource CloseButton}" Background="Transparent" BorderThickness="0"
                         Content="&#x2715;" FontSize="9"
                         Foreground="#9A9A9E"/>
             </Grid>

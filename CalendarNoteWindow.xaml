@@ -29,8 +29,7 @@
                         Width="20" Height="20"
                         HorizontalAlignment="Right" VerticalAlignment="Center"
                         Content="&#x2715;" FontSize="10" Foreground="#9A9A9E"
-                        Background="Transparent" BorderThickness="0"
-                        Cursor="Hand" Focusable="False"/>
+                        Style="{DynamicResource CloseButton}" Background="Transparent" BorderThickness="0"/>
             </Grid>
 
             <Border Grid.Row="1" Background="#141416" BorderBrush="#2E2E30"
