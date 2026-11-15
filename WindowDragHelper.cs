@@ -1,9 +1,6 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Media;
 
 namespace WindowsNotch
 {
@@ -11,45 +8,6 @@ namespace WindowsNotch
     {
         private const double SnapThreshold = 24.0;
         private const double SnapMargin = 8.0;
-
-        private const uint MonitorDefaultToNearest = 2;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct NativePoint
-        {
-            public int X;
-            public int Y;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct NativeRect
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct MonitorInfo
-        {
-            public int Size;
-            public NativeRect Monitor;
-            public NativeRect Work;
-            public uint Flags;
-        }
-
-        [DllImport("user32.dll")]
-        private static extern bool GetCursorPos(out NativePoint point);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromPoint(NativePoint point, uint flags);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
-
-        [DllImport("user32.dll")]
-        private static extern uint GetDpiForWindow(IntPtr hwnd);
 
         private readonly Window _window;
         private readonly UIElement _dragElement;
@@ -98,7 +56,10 @@ namespace WindowsNotch
                 return;
             }
 
-            if (!GetCursorPosDip(out var cursorDip, out var rawCursorPoint)) return;
+            if (!ScreenGeometry.TryGetCursor(
+                    _window,
+                    out var rawCursorPoint,
+                    out var cursorDip)) return;
 
             double deltaX = cursorDip.X - _startCursorDip.X;
             double deltaY = cursorDip.Y - _startCursorDip.Y;
@@ -106,7 +67,9 @@ namespace WindowsNotch
             double targetLeft = _startWindowPos.X + deltaX;
             double targetTop = _startWindowPos.Y + deltaY;
 
-            Rect workArea = GetWorkAreaDip(rawCursorPoint);
+            Rect workArea = ScreenGeometry.GetWorkAreaFromPoint(
+                _window,
+                rawCursorPoint);
 
             ApplySnapping(ref targetLeft, ref targetTop, _window.Width, _window.Height, workArea);
 
@@ -224,85 +187,7 @@ namespace WindowsNotch
 
         private bool GetCursorPosDip(out Point pointDip)
         {
-            return GetCursorPosDip(out pointDip, out _);
-        }
-
-        private bool GetCursorPosDip(out Point pointDip, out NativePoint rawPoint)
-        {
-            pointDip = default;
-            if (!GetCursorPos(out rawPoint)) return false;
-
-            double scaleX = 1.0;
-            double scaleY = 1.0;
-
-            var hwnd = new WindowInteropHelper(_window).Handle;
-            if (hwnd != IntPtr.Zero)
-            {
-                uint dpi = GetDpiForWindow(hwnd);
-                if (dpi > 0)
-                {
-                    scaleX = dpi / 96.0;
-                    scaleY = scaleX;
-                }
-            }
-
-            if (scaleX <= 0 || scaleX == 1.0)
-            {
-                var visual = VisualTreeHelper.GetDpi(_window);
-                if (visual.DpiScaleX > 0) scaleX = visual.DpiScaleX;
-                if (visual.DpiScaleY > 0) scaleY = visual.DpiScaleY;
-            }
-
-            if (scaleX <= 0) scaleX = 1.0;
-            if (scaleY <= 0) scaleY = 1.0;
-
-            pointDip = new Point(rawPoint.X / scaleX, rawPoint.Y / scaleY);
-            return true;
-        }
-
-        private Rect GetWorkAreaDip(NativePoint point)
-        {
-            IntPtr monitor = MonitorFromPoint(point, MonitorDefaultToNearest);
-            if (monitor != IntPtr.Zero)
-            {
-                var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
-                if (GetMonitorInfo(monitor, ref info))
-                {
-                    double scaleX = 1.0;
-                    double scaleY = 1.0;
-
-                    var hwnd = new WindowInteropHelper(_window).Handle;
-                    if (hwnd != IntPtr.Zero)
-                    {
-                        uint dpi = GetDpiForWindow(hwnd);
-                        if (dpi > 0)
-                        {
-                            scaleX = dpi / 96.0;
-                            scaleY = scaleX;
-                        }
-                    }
-
-                    if (scaleX <= 0 || scaleX == 1.0)
-                    {
-                        var visual = VisualTreeHelper.GetDpi(_window);
-                        if (visual.DpiScaleX > 0) scaleX = visual.DpiScaleX;
-                        if (visual.DpiScaleY > 0) scaleY = visual.DpiScaleY;
-                    }
-
-                    if (scaleX <= 0) scaleX = 1.0;
-                    if (scaleY <= 0) scaleY = 1.0;
-
-                    return new Rect(
-                        info.Work.Left / scaleX,
-                        info.Work.Top / scaleY,
-                        (info.Work.Right - info.Work.Left) / scaleX,
-                        (info.Work.Bottom - info.Work.Top) / scaleY);
-                }
-            }
-
-            return new Rect(0, 0,
-                SystemParameters.PrimaryScreenWidth,
-                SystemParameters.PrimaryScreenHeight);
+            return ScreenGeometry.TryGetCursor(_window, out _, out pointDip);
         }
     }
 }
