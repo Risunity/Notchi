@@ -42,5 +42,13 @@ namespace WindowsNotch
         public int MobileServerPort { get; set; } = 8765;
         public long MobileMaxFileSizeMb { get; set; } = 500;
         public string? PcId { get; set; }
+
+        // Reward Settings
+        public bool UseRewardBackground { get; set; } = true;
+        public string? RedeemedCode { get; set; }
+        public int ClaimNumber { get; set; }
+        public string? RewardBgId { get; set; }
+        public string? RewardBadgeId { get; set; }
+        public string? RewardRarity { get; set; }
     }
 }
