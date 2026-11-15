@@ -10,9 +10,9 @@ namespace WindowsNotch
 {
     public partial class SettingsWindow : Window
     {
-        private static readonly Brush MutedBrush = FrozenBrush(0x6E, 0x6E, 0x73);
-        private static readonly Brush ErrorBrush = FrozenBrush(0xFF, 0x6B, 0x6B);
-        private static readonly Brush AccentBrush = FrozenBrush(0x3D, 0x7E, 0xFF);
+        private static readonly Brush MutedBrush = FrozenBrushes.Create(0x6E, 0x6E, 0x73);
+        private static readonly Brush ErrorBrush = FrozenBrushes.Create(0xFF, 0x6B, 0x6B);
+        private static readonly Brush AccentBrush = FrozenBrushes.Create(0x3D, 0x7E, 0xFF);
 
         private readonly AppSettings _settings;
         private bool _isReady;
@@ -85,7 +85,7 @@ namespace WindowsNotch
                 SettingsStore.Save(_settings);
             };
 
-            var borderDrag = new WindowDragHelper(this, CardBorder, IsInteractive);
+            var borderDrag = new WindowDragHelper(this, CardBorder, UIHelper.IsInteractive);
             borderDrag.DragEnded += (s, e) =>
             {
                 _settings.SettingsLeft = Left;
@@ -181,8 +181,6 @@ namespace WindowsNotch
 
         public event EventHandler? SettingsChanged;
 
-        public bool ClosedByUser { get; private set; }
-
         private void RefreshDevicesList()
         {
             var devices = DeviceStore.Load();
@@ -272,7 +270,7 @@ namespace WindowsNotch
             if (_recordingTarget != HotkeyTarget.None) return;
 
             _recordingTarget = target;
-            CancelRecordingVisuals();
+            ResetRecorderVisuals();
 
             if (target == HotkeyTarget.Main)
             {
@@ -292,19 +290,6 @@ namespace WindowsNotch
 
             _recordingTarget = HotkeyTarget.None;
             ResetRecorderVisuals();
-        }
-
-        private void CancelRecordingVisuals()
-        {
-            HotkeyLabel.Text = FormatHotkey(
-                _settings.HotkeyModifiers, _settings.HotkeyKey);
-            FocusHotkeyLabel.Text = FormatHotkey(
-                _settings.FocusHotkeyModifiers, _settings.FocusHotkeyKey);
-
-            HotkeyRecorder.BorderBrush = new SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(0x33, 0x33, 0x36));
-            FocusHotkeyRecorder.BorderBrush = new SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(0x33, 0x33, 0x36));
         }
 
         private void ResetRecorderVisuals()
@@ -334,22 +319,6 @@ namespace WindowsNotch
 
             _settings.HideNotchInFocus = HideNotchToggle.IsChecked == true;
             SaveSettings();
-        }
-
-        private static bool IsInteractive(DependencyObject? obj)
-        {
-            while (obj != null)
-            {
-                if (obj is System.Windows.Controls.Primitives.ButtonBase ||
-                    obj is System.Windows.Controls.TextBox ||
-                    obj is System.Windows.Controls.Primitives.ScrollBar ||
-                    obj is System.Windows.Controls.Primitives.Thumb)
-                {
-                    return true;
-                }
-                obj = VisualTreeHelper.GetParent(obj);
-            }
-            return false;
         }
 
         private void OnAutoStartToggleChanged(object? sender, RoutedEventArgs e)
@@ -401,7 +370,6 @@ namespace WindowsNotch
 
         private void CloseFromUser()
         {
-            ClosedByUser = true;
             RequestClose();
         }
 
@@ -563,11 +531,5 @@ namespace WindowsNotch
             return parts.Count > 0 ? string.Join("+", parts) : "—";
         }
 
-        private static Brush FrozenBrush(byte r, byte g, byte b)
-        {
-            var brush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
-            brush.Freeze();
-            return brush;
-        }
     }
 }

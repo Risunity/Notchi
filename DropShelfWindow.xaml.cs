@@ -20,11 +20,10 @@ namespace WindowsNotch
         public const int MaxItems = 50;
         private const int MaxOpenAllItems = 10;
 
-        private static readonly Brush MutedBrush = FrozenBrush(0x6E, 0x6E, 0x73);
-        private static readonly Brush ErrorBrush = FrozenBrush(0xFF, 0x6B, 0x6B);
+        private static readonly Brush MutedBrush = FrozenBrushes.Create(0x6E, 0x6E, 0x73);
+        private static readonly Brush ErrorBrush = FrozenBrushes.Create(0xFF, 0x6B, 0x6B);
 
         private readonly List<DroppedFileItem> _items = new();
-        private bool _isClosing;
 
         public DropShelfWindow(IEnumerable<string> paths)
         {
@@ -40,13 +39,10 @@ namespace WindowsNotch
             var headerDrag = new WindowDragHelper(this, HeaderRow);
             headerDrag.DragEnded += (s, e) => PositionSaved?.Invoke(this, EventArgs.Empty);
 
-            var borderDrag = new WindowDragHelper(this, CardBorder, IsInteractive);
+            var borderDrag = new WindowDragHelper(this, CardBorder, UIHelper.IsInteractive);
             borderDrag.DragEnded += (s, e) => PositionSaved?.Invoke(this, EventArgs.Empty);
 
-            Closed += (s, e) => _isClosing = true;
-
             PreviewKeyDown += OnPreviewKeyDown;
-            Closing += (s, e) => _isClosing = true;
 
             Loaded += (s, e) => Activate();
         }
@@ -273,22 +269,6 @@ namespace WindowsNotch
             SetStatus(Localization.Format("SentManyToMobile", sent), isError: false);
         }
 
-        private static bool IsInteractive(DependencyObject? obj)
-        {
-            while (obj != null)
-            {
-                if (obj is System.Windows.Controls.Primitives.ButtonBase ||
-                    obj is System.Windows.Controls.TextBox ||
-                    obj is System.Windows.Controls.Primitives.ScrollBar ||
-                    obj is System.Windows.Controls.Primitives.Thumb)
-                {
-                    return true;
-                }
-                obj = VisualTreeHelper.GetParent(obj);
-            }
-            return false;
-        }
-
         private static DroppedFileItem? GetItem(object sender)
         {
             return (sender as FrameworkElement)?.Tag as DroppedFileItem;
@@ -335,25 +315,13 @@ namespace WindowsNotch
 
         private void RequestClose()
         {
-            if (_isClosing) return;
-
-            _isClosing = true;
-
-            if (!IsLoaded ||
-                Dispatcher.HasShutdownStarted ||
+            if (Dispatcher.HasShutdownStarted ||
                 Dispatcher.HasShutdownFinished)
             {
                 return;
             }
 
-            try
-            {
-                Close();
-            }
-            catch (InvalidOperationException)
-            {
-                // The window is already in its closing sequence.
-            }
+            Close();
         }
 
         private void OnPreviewKeyDown(object sender, KeyEventArgs e)
@@ -364,11 +332,5 @@ namespace WindowsNotch
             e.Handled = true;
         }
 
-        private static Brush FrozenBrush(byte r, byte g, byte b)
-        {
-            var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
-            brush.Freeze();
-            return brush;
-        }
     }
 }
