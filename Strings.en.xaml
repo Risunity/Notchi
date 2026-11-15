@@ -153,5 +153,20 @@
     <sys:String x:Key="Instrumental">Instrumental track</sys:String>
     <sys:String x:Key="LyricsAttribution">Lyrics via LRCLIB</sys:String>
     <sys:String x:Key="NoLyricsHint">Showing visualizer and track details</sys:String>
+
+    <!-- Reward Claim -->
+    <sys:String x:Key="RewardTab">Reward</sys:String>
+    <sys:String x:Key="RewardTitle">CLAIM REWARD</sys:String>
+    <sys:String x:Key="RewardDescription">Claim exclusive rewards from notchi-web to unlock custom media player backgrounds and Founding Member badges.</sys:String>
+    <sys:String x:Key="RewardCodePlaceholder">NOTCHI-XXXX-XXXX</sys:String>
+    <sys:String x:Key="Redeem">Redeem</sys:String>
+    <sys:String x:Key="Redeeming">Processing...</sys:String>
+    <sys:String x:Key="RewardActive">Reward Active</sys:String>
+    <sys:String x:Key="RewardNotActive">No active rewards on this device</sys:String>
+    <sys:String x:Key="RewardUseBgTitle">Use Reward Background</sys:String>
+    <sys:String x:Key="RewardUseBgDescription">Display reward illustration on the media player card</sys:String>
+    <sys:String x:Key="ReleaseDevice">Release This Device</sys:String>
+    <sys:String x:Key="ReleasingDevice">Releasing device...</sys:String>
+    <sys:String x:Key="FoundingMember">Founding Member</sys:String>
 </ResourceDictionary>
 

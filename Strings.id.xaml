@@ -154,5 +154,20 @@
     <sys:String x:Key="Instrumental">Lagu instrumental</sys:String>
     <sys:String x:Key="LyricsAttribution">Lirik via LRCLIB</sys:String>
     <sys:String x:Key="NoLyricsHint">Visualizer dan detail lagu ditampilkan</sys:String>
+
+    <!-- Reward Klaim -->
+    <sys:String x:Key="RewardTab">Reward</sys:String>
+    <sys:String x:Key="RewardTitle">KLAIM REWARD</sys:String>
+    <sys:String x:Key="RewardDescription">Klaim reward eksklusif dari notchi-web untuk membuka background kustom pemutar musik dan badge Founding Member.</sys:String>
+    <sys:String x:Key="RewardCodePlaceholder">NOTCHI-XXXX-XXXX</sys:String>
+    <sys:String x:Key="Redeem">Redeem</sys:String>
+    <sys:String x:Key="Redeeming">Memproses...</sys:String>
+    <sys:String x:Key="RewardActive">Reward Aktif</sys:String>
+    <sys:String x:Key="RewardNotActive">Belum ada reward aktif di perangkat ini</sys:String>
+    <sys:String x:Key="RewardUseBgTitle">Gunakan Background Reward</sys:String>
+    <sys:String x:Key="RewardUseBgDescription">Tampilkan ilustrasi reward di kartu pemutar musik</sys:String>
+    <sys:String x:Key="ReleaseDevice">Lepas Perangkat Ini</sys:String>
+    <sys:String x:Key="ReleasingDevice">Melepas perangkat...</sys:String>
+    <sys:String x:Key="FoundingMember">Founding Member</sys:String>
 </ResourceDictionary>
 
