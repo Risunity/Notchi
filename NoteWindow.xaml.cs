@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
@@ -13,12 +12,9 @@ namespace WindowsNotch
     {
         private const string NoteFileName = "Notchi Note.txt";
 
-        private static readonly Guid DownloadsFolderId =
-            new("374DE290-123F-4565-9164-39C4925E467B");
-
         private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
-        private static readonly Brush MutedBrush = FrozenBrush(0x6E, 0x6E, 0x73);
-        private static readonly Brush ErrorBrush = FrozenBrush(0xFF, 0x6B, 0x6B);
+        private static readonly Brush MutedBrush = FrozenBrushes.Create(0x6E, 0x6E, 0x73);
+        private static readonly Brush ErrorBrush = FrozenBrushes.Create(0xFF, 0x6B, 0x6B);
 
         private readonly DispatcherTimer _saveTimer = new()
         {
@@ -48,7 +44,7 @@ namespace WindowsNotch
             var headerDrag = new WindowDragHelper(this, HeaderRow);
             headerDrag.DragEnded += (s, e) => PositionSaved?.Invoke(this, EventArgs.Empty);
 
-            var borderDrag = new WindowDragHelper(this, CardBorder, IsInteractive);
+            var borderDrag = new WindowDragHelper(this, CardBorder, UIHelper.IsInteractive);
             borderDrag.DragEnded += (s, e) => PositionSaved?.Invoke(this, EventArgs.Empty);
 
             ResizeGrip.MouseLeftButtonDown += OnResizeGripMouseLeftButtonDown;
@@ -80,12 +76,10 @@ namespace WindowsNotch
 
         public string NotePath { get; }
 
-        public bool ClosedByUser { get; private set; }
         public event EventHandler? PositionSaved;
 
         private void CloseFromUser()
         {
-            ClosedByUser = true;
             RequestClose();
         }
 
@@ -267,22 +261,6 @@ namespace WindowsNotch
             SaveNote();
         }
 
-        private static bool IsInteractive(DependencyObject? obj)
-        {
-            while (obj != null)
-            {
-                if (obj is System.Windows.Controls.Primitives.ButtonBase ||
-                    obj is System.Windows.Controls.TextBox ||
-                    obj is System.Windows.Controls.Primitives.ScrollBar ||
-                    obj is System.Windows.Controls.Primitives.Thumb)
-                {
-                    return true;
-                }
-                obj = VisualTreeHelper.GetParent(obj);
-            }
-            return false;
-        }
-
         private static string ResolveNotePath()
         {
             return Path.Combine(
@@ -329,7 +307,7 @@ namespace WindowsNotch
 
         private static string? FindLegacyNotePath()
         {
-            string downloadsPath = GetDownloadsPath();
+            string downloadsPath = KnownFolders.GetDownloadsDirectory();
             string legacyPath = Path.Combine(downloadsPath, NoteFileName);
 
             if (File.Exists(legacyPath)) return legacyPath;
@@ -349,49 +327,5 @@ namespace WindowsNotch
             return null;
         }
 
-        private static string GetDownloadsPath()
-        {
-            IntPtr pathPtr = IntPtr.Zero;
-
-            try
-            {
-                var folderId = DownloadsFolderId;
-                if (SHGetKnownFolderPath(ref folderId, 0, IntPtr.Zero, out pathPtr) == 0 &&
-                    pathPtr != IntPtr.Zero)
-                {
-                    string? path = Marshal.PtrToStringUni(pathPtr);
-                    if (!string.IsNullOrWhiteSpace(path))
-                    {
-                        return path;
-                    }
-                }
-            }
-            catch
-            {
-                // Fallback ke lokasi default di bawah
-            }
-            finally
-            {
-                if (pathPtr != IntPtr.Zero)
-                {
-                    Marshal.FreeCoTaskMem(pathPtr);
-                }
-            }
-
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "Downloads");
-        }
-
-        private static Brush FrozenBrush(byte r, byte g, byte b)
-        {
-            var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
-            brush.Freeze();
-            return brush;
-        }
-
-        [DllImport("shell32.dll")]
-        private static extern int SHGetKnownFolderPath(
-            ref Guid rfid, uint dwFlags, IntPtr hToken, out IntPtr ppszPath);
     }
 }
