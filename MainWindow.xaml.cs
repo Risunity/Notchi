@@ -47,63 +47,21 @@ namespace WindowsNotch
         private const int WsExNoActivate = 0x08000000;
         private const int WsExToolWindow = 0x00000080;
 
-        private const uint MonitorDefaultToNearest = 2;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct NativePoint
-        {
-            public int X;
-            public int Y;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct NativeRect
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct MonitorInfo
-        {
-            public int Size;
-            public NativeRect Monitor;
-            public NativeRect Work;
-            public uint Flags;
-        }
-
         [DllImport("user32.dll")]
         private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
         [DllImport("user32.dll")]
         private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
-        [DllImport("user32.dll")]
-        private static extern bool GetCursorPos(out NativePoint point);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromPoint(NativePoint point, uint flags);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
-
-        [DllImport("user32.dll")]
-        private static extern uint GetDpiForWindow(IntPtr hwnd);
-
-        private static readonly SolidColorBrush AccentBrush = FrozenBrush(0x3D, 0x7E, 0xFF);
-        private static readonly SolidColorBrush WarningBrush = FrozenBrush(0xFF, 0xB0, 0x20);
-        private static readonly SolidColorBrush DangerBrush = FrozenBrush(0xFF, 0x45, 0x3A);
-        private static readonly SolidColorBrush BatteryBrush = FrozenBrush(0x4C, 0xD9, 0x64);
+        private static readonly SolidColorBrush AccentBrush = FrozenBrushes.Create(0x3D, 0x7E, 0xFF);
+        private static readonly SolidColorBrush WarningBrush = FrozenBrushes.Create(0xFF, 0xB0, 0x20);
+        private static readonly SolidColorBrush DangerBrush = FrozenBrushes.Create(0xFF, 0x45, 0x3A);
+        private static readonly SolidColorBrush BatteryBrush = FrozenBrushes.Create(0x4C, 0xD9, 0x64);
         private static readonly SolidColorBrush DropZoneActiveBrush =
-            FrozenBrush(Color.FromArgb(0x38, 0x3D, 0x7E, 0xFF));
-        private static readonly SolidColorBrush CalendarDayBrush = FrozenBrush(0xF5, 0xF5, 0xF7);
-        private static readonly SolidColorBrush CalendarMutedDayBrush = FrozenBrush(0x85, 0x85, 0x8D);
-        private static readonly SolidColorBrush CalendarTodayTextBrush = FrozenBrush(0x1C, 0x1C, 0x1E);
+            FrozenBrushes.Create(Color.FromArgb(0x38, 0x3D, 0x7E, 0xFF));
+        private static readonly SolidColorBrush CalendarDayBrush = FrozenBrushes.Create(0xF5, 0xF5, 0xF7);
+        private static readonly SolidColorBrush CalendarMutedDayBrush = FrozenBrushes.Create(0x85, 0x85, 0x8D);
+        private static readonly SolidColorBrush CalendarTodayTextBrush = FrozenBrushes.Create(0x1C, 0x1C, 0x1E);
 
         private static readonly Color IdleAccent = Color.FromRgb(0x6C, 0x7B, 0xFF);
         private static readonly Color DropAccent = Color.FromRgb(0x3D, 0x7E, 0xFF);
@@ -123,7 +81,6 @@ namespace WindowsNotch
         private readonly SmtcService _smtc = new();
         private readonly SystemStatusService _systemStatus = new();
         private MobileServerService? _mobileServer;
-        private PairingRequest? _currentPairingRequest;
         private AppSettings _settings = new();
         private MediaInfo? _media;
         private MediaInfo? _lastMedia;
@@ -154,7 +111,7 @@ namespace WindowsNotch
         private DateTime? _selectedCalendarDate = null;
         private Dictionary<string, string> _calendarNotes = new();
         private CalendarNoteWindow? _calendarNoteWindow;
-        private static readonly SolidColorBrush CalendarSelectedBlueBrush = FrozenBrush(0x0A, 0x84, 0xFF);
+        private static readonly SolidColorBrush CalendarSelectedBlueBrush = FrozenBrushes.Create(0x0A, 0x84, 0xFF);
         private readonly Grid[] _idlePages;
         private readonly TranslateTransform[] _idlePageTransforms;
         private bool _isHidden;
@@ -363,7 +320,7 @@ namespace WindowsNotch
                 _hotkey.Initialize(this);
                 _hotkey.HotkeyPressed += (_, _) => ToggleNotchiVisibility();
                 _hotkey.FocusHotkeyPressed += (_, _) => ToggleMediaFocus();
-                _hotkey.Register(_settings.HotkeyModifiers, _settings.HotkeyKey);
+                _hotkey.RegisterMain(_settings.HotkeyModifiers, _settings.HotkeyKey);
                 _hotkey.RegisterFocus(
                     _settings.FocusHotkeyModifiers, _settings.FocusHotkeyKey);
             };
@@ -572,16 +529,9 @@ namespace WindowsNotch
             FeatureMenuBar.BeginAnimation(UIElement.OpacityProperty, fadeAnim);
         }
 
-        private static readonly SolidColorBrush ActiveFeatureBgBrush = CreateFrozenBrush(0xFF, 0xFF, 0xFF);
-        private static readonly SolidColorBrush ActiveFeatureDarkBrush = CreateFrozenBrush(0x12, 0x12, 0x14);
-        private static readonly SolidColorBrush InactiveFeatureLightBrush = CreateFrozenBrush(0xF5, 0xF5, 0xF7);
-
-        private static SolidColorBrush CreateFrozenBrush(byte r, byte g, byte b)
-        {
-            var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
-            brush.Freeze();
-            return brush;
-        }
+        private static readonly SolidColorBrush ActiveFeatureBgBrush = FrozenBrushes.Create(0xFF, 0xFF, 0xFF);
+        private static readonly SolidColorBrush ActiveFeatureDarkBrush = FrozenBrushes.Create(0x12, 0x12, 0x14);
+        private static readonly SolidColorBrush InactiveFeatureLightBrush = FrozenBrushes.Create(0xF5, 0xF5, 0xF7);
 
         private void UpdateFeatureButtonStates()
         {
@@ -862,7 +812,7 @@ namespace WindowsNotch
 
             settings.SettingsChanged += (s, e) =>
             {
-                _hotkey.Register(_settings.HotkeyModifiers, _settings.HotkeyKey);
+                _hotkey.RegisterMain(_settings.HotkeyModifiers, _settings.HotkeyKey);
                 _hotkey.RegisterFocus(
                     _settings.FocusHotkeyModifiers, _settings.FocusHotkeyKey);
                 _focusWindow?.RefreshSettings();
@@ -1120,7 +1070,7 @@ namespace WindowsNotch
 
         private void ApplySourceApp(string aumid, Border icon, Image logo, TextBlock glyph)
         {
-            string? logoKey = TryGetSourceLogoKey(aumid);
+            string? logoKey = SourceApps.Find(aumid)?.LogoKey;
 
             if (logoKey != null && TryFindResource(logoKey) is ImageSource logoSource)
             {
@@ -1131,37 +1081,12 @@ namespace WindowsNotch
                 return;
             }
 
-            Color color = GetSourceColor(aumid) ?? UnknownSourceColor;
+            Color color = SourceApps.Find(aumid)?.Color ?? UnknownSourceColor;
 
             logo.Source = null;
             logo.Visibility = Visibility.Collapsed;
             glyph.Visibility = Visibility.Visible;
-            icon.Background = FrozenBrush(color);
-        }
-
-        private static string? TryGetSourceLogoKey(string aumid)
-        {
-            var id = (aumid ?? string.Empty).ToLowerInvariant();
-
-            if (id.Contains("spotify")) return "SpotifyLogoImage";
-            if (id.Contains("chrome")) return "ChromeLogoImage";
-            if (id.Contains("youtube")) return "YouTubeLogoImage";
-
-            return null;
-        }
-
-        private static Color? GetSourceColor(string aumid)
-        {
-            var id = (aumid ?? string.Empty).ToLowerInvariant();
-
-            if (id.Contains("spotify")) return Color.FromRgb(0x1D, 0xB9, 0x54);
-            if (id.Contains("chrome")) return Color.FromRgb(0xEA, 0x43, 0x35);
-            if (id.Contains("msedge") || id.Contains("edge")) return Color.FromRgb(0x00, 0x78, 0xD4);
-            if (id.Contains("firefox")) return Color.FromRgb(0xFF, 0x71, 0x39);
-            if (id.Contains("youtube")) return Color.FromRgb(0xFF, 0x00, 0x00);
-            if (id.Contains("foobar")) return Color.FromRgb(0x2B, 0x2B, 0x2B);
-
-            return null;
+            icon.Background = FrozenBrushes.Create(color);
         }
 
         // Warna aksen mengikuti state: drop > media > idle.
@@ -1171,7 +1096,7 @@ namespace WindowsNotch
                 ? DropAccent
                 : _media == null
                     ? IdleAccent
-                    : GetSourceColor(_media.SourceAppId) ?? IdleAccent;
+                    : SourceApps.Find(_media.SourceAppId)?.Color ?? IdleAccent;
 
             NotchAccent.Fill = CreateAccentBrush(accent);
             UpdateProgressFill(_media);
@@ -1180,7 +1105,7 @@ namespace WindowsNotch
         // Progress bar mengikuti warna sumber media dengan gradasi terang -> warna.
         private void UpdateProgressFill(MediaInfo? media)
         {
-            Color? sourceColor = media == null ? null : GetSourceColor(media.SourceAppId);
+            Color? sourceColor = media == null ? null : SourceApps.Find(media.SourceAppId)?.Color;
             Brush brush = sourceColor is Color color
                 ? CreateProgressBrush(color)
                 : (TryFindResource("MediaProgressBrush") as Brush ?? Brushes.White);
@@ -1597,17 +1522,11 @@ namespace WindowsNotch
             PlacementMode placement = bottom ? PlacementMode.Top : PlacementMode.Bottom;
 
             StatusPopup.Placement = placement;
-            PairingPromptPopup.Placement = placement;
 
             double statusOffset = _isExpanded
                 ? FeatureBarGap + FeatureBarHeight + 14
                 : 8;
             StatusPopup.VerticalOffset = bottom ? -statusOffset : statusOffset;
-
-            double pairingOffset = _isExpanded
-                ? FeatureBarGap + FeatureBarHeight + 10
-                : 10;
-            PairingPromptPopup.VerticalOffset = bottom ? -pairingOffset : pairingOffset;
         }
 
         private void UpdateContentMargin()
@@ -1704,69 +1623,12 @@ namespace WindowsNotch
         // Area kerja monitor (dalam DIP) tempat notch berada
         private void UpdateMonitorFromWindow()
         {
-            try
-            {
-                var hwnd = new WindowInteropHelper(this).Handle;
-                var monitor = MonitorFromWindow(hwnd, MonitorDefaultToNearest);
-                UpdateMonitor(monitor);
-            }
-            catch
-            {
-                // Pakai monitor utama bila query gagal
-            }
+            _monitor = ScreenGeometry.GetWorkArea(this);
         }
 
         private void UpdateMonitorFromCursor()
         {
-            try
-            {
-                if (GetCursorPos(out var point))
-                {
-                    UpdateMonitor(MonitorFromPoint(point, MonitorDefaultToNearest));
-                }
-            }
-            catch
-            {
-                // Pakai monitor utama bila query gagal
-            }
-        }
-
-        private void UpdateMonitor(IntPtr monitor)
-        {
-            if (monitor == IntPtr.Zero) return;
-
-            var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
-            if (!GetMonitorInfo(monitor, ref info)) return;
-
-            // GetMonitorInfo mengembalikan piksel fisik; WPF memakai DIP.
-            // DPI diambil dari window; fallback ke VisualTree setelah render.
-            double scaleX = 1, scaleY = 1;
-            var hwnd = new WindowInteropHelper(this).Handle;
-            if (hwnd != IntPtr.Zero)
-            {
-                uint dpi = GetDpiForWindow(hwnd);
-                if (dpi > 0)
-                {
-                    scaleX = dpi / 96.0;
-                    scaleY = scaleX;
-                }
-            }
-
-            if (scaleX <= 0 || scaleX == 1)
-            {
-                var visual = VisualTreeHelper.GetDpi(this);
-                if (visual.DpiScaleX > 0) scaleX = visual.DpiScaleX;
-                if (visual.DpiScaleY > 0) scaleY = visual.DpiScaleY;
-            }
-
-            if (scaleX <= 0) scaleX = 1;
-            if (scaleY <= 0) scaleY = 1;
-
-            _monitor = new Rect(
-                info.Work.Left / scaleX,
-                info.Work.Top / scaleY,
-                (info.Work.Right - info.Work.Left) / scaleX,
-                (info.Work.Bottom - info.Work.Top) / scaleY);
+            _monitor = ScreenGeometry.GetWorkAreaFromCursor(this);
         }
 
         // ===================== Drag & Drop =====================
@@ -1782,19 +1644,15 @@ namespace WindowsNotch
         private void OnPillMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (IsInteractiveElement(e.OriginalSource as DependencyObject)) return;
-            if (!GetCursorPos(out var cursor)) return;
+            if (!ScreenGeometry.TryGetCursor(this, out _, out var cursor)) return;
 
-            var dpi = VisualTreeHelper.GetDpi(this);
-            double scaleX = dpi.DpiScaleX <= 0 ? 1 : dpi.DpiScaleX;
-            double scaleY = dpi.DpiScaleY <= 0 ? 1 : dpi.DpiScaleY;
-
-            _dragStartCursor = new Point(cursor.X, cursor.Y);
+            _dragStartCursor = cursor;
             // Offset kursor terhadap tepi kiri pill (bukan window) agar notch tidak
             // melompat saat window menyusut ke ukuran drag tanpa ruang ikon.
             double pillOffsetX = Math.Max(0, (ActualWidth - PillHost.ActualWidth) / 2);
             _dragGrab = new Point(
-                cursor.X / scaleX - Left - pillOffsetX,
-                cursor.Y / scaleY - Top - GetPillVerticalOffset());
+                cursor.X - Left - pillOffsetX,
+                cursor.Y - Top - GetPillVerticalOffset());
             _dragMoved = false;
             _isDragging = true;
             _collapseTimer.Stop();
@@ -1804,14 +1662,10 @@ namespace WindowsNotch
         private void OnPillMouseMove(object sender, MouseEventArgs e)
         {
             if (!_isDragging || e.LeftButton != MouseButtonState.Pressed) return;
-            if (!GetCursorPos(out var cursor)) return;
+            if (!ScreenGeometry.TryGetCursor(this, out _, out var cursor)) return;
 
-            var dpi = VisualTreeHelper.GetDpi(this);
-            double scaleX = dpi.DpiScaleX <= 0 ? 1 : dpi.DpiScaleX;
-            double scaleY = dpi.DpiScaleY <= 0 ? 1 : dpi.DpiScaleY;
-
-            double dx = (cursor.X - _dragStartCursor.X) / scaleX;
-            double dy = (cursor.Y - _dragStartCursor.Y) / scaleY;
+            double dx = cursor.X - _dragStartCursor.X;
+            double dy = cursor.Y - _dragStartCursor.Y;
 
             if (!_dragMoved && Math.Abs(dx) < 4 && Math.Abs(dy) < 4) return;
 
@@ -1819,7 +1673,7 @@ namespace WindowsNotch
             {
                 _dragMoved = true;
                 UpdateMonitorFromCursor();
-                BeginDragVisual(cursor, scaleX, scaleY);
+                BeginDragVisual(cursor);
             }
             else
             {
@@ -1828,13 +1682,13 @@ namespace WindowsNotch
             }
 
             // Bebas mengikuti kursor; snap ke anchor baru terjadi saat mouse dilepas
-            Left = cursor.X / scaleX - _dragGrab.X;
-            Top = cursor.Y / scaleY - _dragGrab.Y;
+            Left = cursor.X - _dragGrab.X;
+            Top = cursor.Y - _dragGrab.Y;
             PillHost.Cursor = Cursors.SizeAll;
         }
 
         // Saat mulai digeser: ciutkan notch ke ukuran collapsed dan bentuk kapsul rapi
-        private void BeginDragVisual(NativePoint cursor, double scaleX, double scaleY)
+        private void BeginDragVisual(Point cursor)
         {
             if (_isExpanded)
             {
@@ -1847,8 +1701,8 @@ namespace WindowsNotch
             PillHost.BeginAnimation(FrameworkElement.HeightProperty, null);
 
             var (cw, ch) = CollapsedSize;
-            double grabX = cursor.X / scaleX - Left;
-            double grabY = cursor.Y / scaleY - Top - GetPillVerticalOffset();
+            double grabX = cursor.X - Left;
+            double grabY = cursor.Y - Top - GetPillVerticalOffset();
 
             PillHost.Width = cw;
             PillHost.Height = ch;
@@ -1860,8 +1714,8 @@ namespace WindowsNotch
             grabX = Math.Clamp(grabX, 0, cw);
             grabY = Math.Clamp(grabY, 0, ch);
             _dragGrab = new Point(grabX, grabY);
-            Left = cursor.X / scaleX - grabX;
-            Top = cursor.Y / scaleY - grabY;
+            Left = cursor.X - grabX;
+            Top = cursor.Y - grabY;
 
             UpdateNotchShape(new Size(cw, ch));
         }
@@ -2172,18 +2026,13 @@ namespace WindowsNotch
                     progress,
                     cts.Token);
 
-                int succeeded = outcomes.Count(item => item.Success);
+                int succeeded = outcomes.Count(item => item.OutputPath != null);
                 int failed = outcomes.Count - succeeded;
 
                 if (succeeded == 0)
                 {
-                    string? error = outcomes
-                        .FirstOrDefault(item => !item.Success)?.Error;
-
                     ShowStatusPopup(
-                        string.IsNullOrWhiteSpace(error)
-                            ? Localization.Get("ConvertFailed")
-                            : error!,
+                        Localization.Get("ConvertFailed"),
                         isError: true);
                 }
                 else if (failed == 0)
@@ -2231,7 +2080,7 @@ namespace WindowsNotch
             StatusPopupCard.BorderBrush = isError ? DangerBrush : AccentBrush;
             StatusPopupText.Foreground = isError
                 ? DangerBrush
-                : FrozenBrush(0xF5, 0xF5, 0xF7);
+                : FrozenBrushes.Create(0xF5, 0xF5, 0xF7);
             UpdatePopupPlacement();
             StatusPopup.IsOpen = true;
             _statusTimer.Start();
@@ -2739,18 +2588,6 @@ namespace WindowsNotch
             }
         }
 
-        private static SolidColorBrush FrozenBrush(byte r, byte g, byte b)
-        {
-            return FrozenBrush(Color.FromRgb(r, g, b));
-        }
-
-        private static SolidColorBrush FrozenBrush(Color color)
-        {
-            var brush = new SolidColorBrush(color);
-            brush.Freeze();
-            return brush;
-        }
-
         private static void SetMetric(ProgressBar bar, TextBlock text, double? value)
         {
             if (value is not double v)
@@ -2861,47 +2698,35 @@ namespace WindowsNotch
                 return;
             }
 
-            var firstProperty = widthFirst
-                ? FrameworkElement.WidthProperty
-                : FrameworkElement.HeightProperty;
-            double firstStart = widthFirst ? startWidth : startHeight;
-            double firstTarget = widthFirst ? targetWidth : targetHeight;
-
-            if (Math.Abs(firstTarget - firstStart) < 0.5)
+            if (Math.Abs(targetWidth - startWidth) < 0.5)
             {
-                AnimatePillSecondPhase(targetWidth, targetHeight, widthFirst, version);
+                AnimatePillSecondPhase(targetHeight, version);
                 return;
             }
 
-            var firstAnim = new DoubleAnimation(firstStart, firstTarget, PillPhaseDuration)
+            var firstAnim = new DoubleAnimation(startWidth, targetWidth, PillPhaseDuration)
             {
                 EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut }
             };
             firstAnim.Completed += (s, e) =>
-                AnimatePillSecondPhase(targetWidth, targetHeight, widthFirst, version);
+                AnimatePillSecondPhase(targetHeight, version);
 
-            PillHost.BeginAnimation(firstProperty, firstAnim);
+            PillHost.BeginAnimation(FrameworkElement.WidthProperty, firstAnim);
         }
 
-        private void AnimatePillSecondPhase(
-            double targetWidth, double targetHeight, bool widthFirst, int version)
+        private void AnimatePillSecondPhase(double targetHeight, int version)
         {
             if (version != _animationVersion) return;
 
-            var property = widthFirst
-                ? FrameworkElement.HeightProperty
-                : FrameworkElement.WidthProperty;
-            double target = widthFirst ? targetHeight : targetWidth;
-            double current = widthFirst ? PillHost.Height : PillHost.Width;
+            double current = PillHost.Height;
+            if (Math.Abs(targetHeight - current) < 0.5) return;
 
-            if (Math.Abs(target - current) < 0.5) return;
-
-            var anim = new DoubleAnimation(current, target, PillPhaseDuration)
+            var anim = new DoubleAnimation(current, targetHeight, PillPhaseDuration)
             {
                 EasingFunction = new QuinticEase { EasingMode = EasingMode.EaseOut }
             };
 
-            PillHost.BeginAnimation(property, anim);
+            PillHost.BeginAnimation(FrameworkElement.HeightProperty, anim);
         }
 
         private void ToggleNotchiVisibility()
@@ -2952,8 +2777,7 @@ namespace WindowsNotch
                 {
                     try
                     {
-                        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                        string downloadsFolder = Path.Combine(userProfile, "Downloads");
+                        string downloadsFolder = KnownFolders.GetDownloadsDirectory();
                         Directory.CreateDirectory(downloadsFolder);
                         string noteFile = Path.Combine(downloadsFolder, $"Notchi_Mobile_Note_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
                         File.WriteAllText(noteFile, text);
@@ -2962,28 +2786,6 @@ namespace WindowsNotch
                     }
                     catch { }
                 });
-            };
-
-            PairingService.OnPairingRequested += OnPairingRequestedFromDevice;
-
-            DenyPairButton.Click += (s, e) =>
-            {
-                PairingPromptPopup.IsOpen = false;
-                if (_currentPairingRequest != null)
-                {
-                    _currentPairingRequest.ApprovalSource.TrySetResult(false);
-                    _currentPairingRequest = null;
-                }
-            };
-
-            AllowPairButton.Click += (s, e) =>
-            {
-                PairingPromptPopup.IsOpen = false;
-                if (_currentPairingRequest != null)
-                {
-                    _currentPairingRequest.ApprovalSource.TrySetResult(true);
-                    _currentPairingRequest = null;
-                }
             };
 
             ApplyMobileServerSettings();
@@ -3017,35 +2819,9 @@ namespace WindowsNotch
             }
         }
 
-        private Task OnPairingRequestedFromDevice(PairingRequest req)
-        {
-            var tcs = new System.Threading.Tasks.TaskCompletionSource();
-
-            Dispatcher.BeginInvoke(async () =>
-            {
-                try
-                {
-                    _currentPairingRequest = req;
-                    PairingPromptDeviceName.Text = $"Izinkan perangkat \"{req.DeviceName}\" terhubung?";
-                    UpdatePopupPlacement();
-                    PairingPromptPopup.IsOpen = true;
-
-                    await req.ApprovalSource.Task;
-                }
-                finally
-                {
-                    PairingPromptPopup.IsOpen = false;
-                    tcs.TrySetResult();
-                }
-            });
-
-            return tcs.Task;
-        }
-
         protected override void OnClosed(EventArgs e)
         {
             _isMainClosing = true;
-            PairingService.OnPairingRequested -= OnPairingRequestedFromDevice;
             _mobileServer?.Dispose();
             _quickConversionCts?.Cancel();
             _statusTimer.Stop();

@@ -35,11 +35,6 @@ namespace WindowsNotch
             _source?.AddHook(WndProc);
         }
 
-        public bool Register(uint modifiers, uint virtualKey)
-        {
-            return RegisterMain(modifiers, virtualKey);
-        }
-
         public bool RegisterMain(uint modifiers, uint virtualKey)
         {
             UnregisterMain();
@@ -60,11 +55,6 @@ namespace WindowsNotch
             _focusRegistered = RegisterHotKey(
                 _source.Handle, FocusHotkeyId, modifiers | NoRepeat, virtualKey);
             return _focusRegistered;
-        }
-
-        public void Unregister()
-        {
-            UnregisterMain();
         }
 
         public void UnregisterMain()

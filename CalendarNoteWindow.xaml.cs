@@ -10,12 +10,9 @@ namespace WindowsNotch
         public event EventHandler<string>? Saved;
         public event EventHandler? Deleted;
 
-        private readonly DateTime _date;
-
         public CalendarNoteWindow(DateTime date, string? initialNote)
         {
             InitializeComponent();
-            _date = date;
 
             CalendarNotePopupDateText.Text = date.ToString("dd MMMM yyyy", CultureInfo.CurrentCulture);
             CalendarNoteInput.Text = initialNote ?? string.Empty;

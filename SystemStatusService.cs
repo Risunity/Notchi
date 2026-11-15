@@ -59,16 +59,6 @@ namespace WindowsNotch
             _timer.Change(FastIntervalMs, FastIntervalMs);
         }
 
-        public void Stop()
-        {
-            lock (_gate)
-            {
-                _running = false;
-            }
-
-            _timer.Change(Timeout.Infinite, Timeout.Infinite);
-        }
-
         public SystemStatusSnapshot GetCurrentSnapshot()
         {
             lock (_gate)
