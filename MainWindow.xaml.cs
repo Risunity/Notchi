@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using WindowsNotch.Conversion;
+using WindowsNotch.Rewards;
 
 namespace WindowsNotch
 {
@@ -189,6 +190,16 @@ namespace WindowsNotch
             };
 
             _settings = SettingsStore.Load();
+
+            var storedReward = EntitlementStore.Load();
+            if (storedReward?.Payload != null)
+            {
+                _settings.ClaimNumber = storedReward.Payload.ClaimNumber;
+                _settings.RewardBgId = storedReward.Payload.BgId;
+                _settings.RewardBadgeId = storedReward.Payload.BadgeId;
+                _settings.RewardRarity = storedReward.Payload.Rarity;
+                _settings.RedeemedCode = storedReward.Payload.Code;
+            }
 
             bool autoStartEnabled = StartupService.IsEnabled();
             if (autoStartEnabled)
@@ -817,6 +828,7 @@ namespace WindowsNotch
                     _settings.FocusHotkeyModifiers, _settings.FocusHotkeyKey);
                 _focusWindow?.RefreshSettings();
                 ApplyMobileServerSettings();
+                UpdateRewardBackground();
             };
 
             settings.Closed += (s, e) =>
@@ -1100,6 +1112,52 @@ namespace WindowsNotch
 
             NotchAccent.Fill = CreateAccentBrush(accent);
             UpdateProgressFill(_media);
+            UpdateRewardBackground();
+        }
+
+        private void UpdateRewardBackground()
+        {
+            if (!_settings.UseRewardBackground || string.IsNullOrWhiteSpace(_settings.RewardBgId))
+            {
+                RewardBackgroundHost.Visibility = Visibility.Collapsed;
+                RewardBadge.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            bool hasMedia = _media != null;
+            if (!hasMedia || !RewardAssetCache.HasAssets(_settings.RewardBgId))
+            {
+                RewardBackgroundHost.Visibility = Visibility.Collapsed;
+                RewardBadge.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            string path = _isExpanded
+                ? RewardAssetCache.GetExpandPath(_settings.RewardBgId)
+                : RewardAssetCache.GetCompactPath(_settings.RewardBgId);
+
+            var bitmap = RewardAssetCache.LoadBitmap(path);
+            if (bitmap != null)
+            {
+                RewardBackgroundImage.Source = bitmap;
+                RewardBackgroundHost.Visibility = Visibility.Visible;
+                NotchAccent.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                RewardBackgroundHost.Visibility = Visibility.Collapsed;
+                NotchAccent.Visibility = Visibility.Visible;
+            }
+
+            if (_settings.ClaimNumber > 0)
+            {
+                RewardBadge.Visibility = Visibility.Visible;
+                RewardBadge.ToolTip = $"Founding Member #{_settings.ClaimNumber:D3}";
+            }
+            else
+            {
+                RewardBadge.Visibility = Visibility.Collapsed;
+            }
         }
 
         // Progress bar mengikuti warna sumber media dengan gradasi terang -> warna.
@@ -2261,6 +2319,7 @@ namespace WindowsNotch
             SourceAppIcon.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
             UpdateContentMargin();
             UpdateVisualState();
+            UpdateRewardBackground();
         }
 
         // Menentukan layout mana yang tampil: idle dashboard, media horizontal, atau mini vertikal di sisi

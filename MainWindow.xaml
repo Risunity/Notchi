@@ -297,6 +297,26 @@
                   Fill="Transparent" Stroke="{StaticResource NotchHairlineBrush}"
                   StrokeThickness="1.2" IsHitTestVisible="False"/>
 
+            <!-- Reward Custom Background (Nameplate) -->
+            <Grid x:Name="RewardBackgroundHost" Visibility="Collapsed" IsHitTestVisible="False">
+                <Grid.Clip>
+                    <Binding ElementName="NotchShape" Path="Data"/>
+                </Grid.Clip>
+                <Image x:Name="RewardBackgroundImage" Stretch="UniformToFill"
+                       HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                <!-- Dark gradient overlay from left so text and controls stay clear -->
+                <Rectangle>
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#E6000000" Offset="0"/>
+                            <GradientStop Color="#B3000000" Offset="0.45"/>
+                            <GradientStop Color="#40000000" Offset="0.85"/>
+                            <GradientStop Color="#1A000000" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+            </Grid>
+
         <Grid x:Name="ContentRoot" Margin="16,0">
             <!-- State 1: Idle dashboard (saat tidak ada sesi media) -->
             <Grid x:Name="IdleRoot" Visibility="Collapsed" VerticalAlignment="Stretch">
@@ -753,9 +773,19 @@
 
                     <StackPanel x:Name="TextStack" Grid.Column="1"
                                 VerticalAlignment="Center" Margin="0,0,8,0">
-                        <TextBlock x:Name="TrackTitle" Text="Everything You Are" Foreground="White"
-                                   FontSize="11.5" FontWeight="SemiBold" LineHeight="14"
-                                   TextTrimming="CharacterEllipsis"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="TrackTitle" Text="Everything You Are" Foreground="White"
+                                       FontSize="11.5" FontWeight="SemiBold" LineHeight="14"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <Border x:Name="RewardBadge" Width="13" Height="13" CornerRadius="6.5"
+                                    Background="#303D7EFF" BorderBrush="#603D7EFF" BorderThickness="1"
+                                    Margin="5,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"
+                                    Cursor="Help">
+                                <TextBlock Text="★" FontSize="7.5" Foreground="#3D7EFF"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Margin="0,-1,0,0"/>
+                            </Border>
+                        </StackPanel>
                         <TextBlock x:Name="TrackArtist" Text="Hindia" Foreground="{StaticResource TextSecondaryBrush}"
                                    FontSize="9" LineHeight="11" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
