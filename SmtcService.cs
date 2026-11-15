@@ -14,7 +14,6 @@ namespace WindowsNotch
         public string Artist { get; init; } = string.Empty;
         public string Album { get; init; } = string.Empty;
         public BitmapImage? AlbumArt { get; init; }
-        public byte[]? AlbumArtBytes { get; init; }
         public string SourceAppId { get; init; } = string.Empty;
         public bool IsPlaying { get; init; }
         public TimeSpan Position { get; init; }
@@ -56,7 +55,6 @@ namespace WindowsNotch
         public MediaInfo? CurrentMedia { get; private set; }
 
         public byte[]? GetCurrentArtworkBytes() => _cachedArtBytes;
-        public int CurrentArtVersion => _artVersion;
 
         public async Task InitializeAsync()
         {
@@ -229,7 +227,6 @@ namespace WindowsNotch
                     Artist = artist,
                     Album = properties.AlbumTitle ?? string.Empty,
                     AlbumArt = _cachedArt,
-                    AlbumArtBytes = _cachedArtBytes,
                     SourceAppId = sourceAppId,
                     IsPlaying = playback.PlaybackStatus ==
                                 GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing,

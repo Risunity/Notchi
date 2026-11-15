@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -33,45 +32,16 @@ namespace WindowsNotch
         private static readonly TimeSpan PageSlideDuration =
             TimeSpan.FromMilliseconds(240);
 
-        private static readonly SolidColorBrush ActiveLyricBrush = Frozen(0xFF, 0xFF, 0xFF);
-        private static readonly SolidColorBrush InactiveLyricBrush = Frozen(0x78, 0x78, 0x80);
-        private static readonly SolidColorBrush IdleAccentBrush = Frozen(0x6C, 0x7B, 0xFF);
+        private static readonly SolidColorBrush ActiveLyricBrush = FrozenBrushes.Create(0xFF, 0xFF, 0xFF);
+        private static readonly SolidColorBrush InactiveLyricBrush = FrozenBrushes.Create(0x78, 0x78, 0x80);
+        private static readonly SolidColorBrush IdleAccentBrush = FrozenBrushes.Create(0x6C, 0x7B, 0xFF);
         private static readonly Color IdleAccent = Color.FromRgb(0x6C, 0x7B, 0xFF);
-
-        private const uint MonitorDefaultToNearest = 2;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct NativeRect
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct FocusMonitorInfo
-        {
-            public int Size;
-            public NativeRect Monitor;
-            public NativeRect Work;
-            public uint Flags;
-        }
 
         [DllImport("user32.dll")]
         private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
         [DllImport("user32.dll")]
         private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern bool GetMonitorInfo(IntPtr monitor, ref FocusMonitorInfo info);
-
-        [DllImport("user32.dll")]
-        private static extern uint GetDpiForWindow(IntPtr hWnd);
 
         private readonly SmtcService _smtc;
         private readonly AppSettings _settings;
@@ -296,23 +266,8 @@ namespace WindowsNotch
                 }
             };
 
-            var drag = new WindowDragHelper(this, DragHeader, IsInteractive);
+            var drag = new WindowDragHelper(this, DragHeader, UIHelper.IsInteractive);
             drag.DragEnded += (_, _) => PositionSaved?.Invoke(this, EventArgs.Empty);
-        }
-
-        private static bool IsInteractive(DependencyObject? obj)
-        {
-            while (obj != null)
-            {
-                if (obj is ButtonBase || obj is Slider || obj is Thumb || obj is ScrollBar)
-                {
-                    return true;
-                }
-
-                obj = VisualTreeHelper.GetParent(obj);
-            }
-
-            return false;
         }
 
         private void OnPointerOverChanged(bool over)
@@ -390,38 +345,7 @@ namespace WindowsNotch
 
         private Rect GetWorkArea()
         {
-            var hwnd = new WindowInteropHelper(this).Handle;
-            if (hwnd == IntPtr.Zero) return SystemParameters.WorkArea;
-
-            IntPtr monitor = MonitorFromWindow(hwnd, MonitorDefaultToNearest);
-            if (monitor == IntPtr.Zero) return SystemParameters.WorkArea;
-
-            var info = new FocusMonitorInfo
-            {
-                Size = Marshal.SizeOf<FocusMonitorInfo>()
-            };
-
-            if (!GetMonitorInfo(monitor, ref info)) return SystemParameters.WorkArea;
-
-            double scale = 1.0;
-            uint dpi = GetDpiForWindow(hwnd);
-            if (dpi > 0)
-            {
-                scale = dpi / 96.0;
-            }
-            else
-            {
-                var visual = VisualTreeHelper.GetDpi(this);
-                if (visual.DpiScaleX > 0) scale = visual.DpiScaleX;
-            }
-
-            if (scale <= 0) scale = 1.0;
-
-            return new Rect(
-                info.Work.Left / scale,
-                info.Work.Top / scale,
-                (info.Work.Right - info.Work.Left) / scale,
-                (info.Work.Bottom - info.Work.Top) / scale);
+            return ScreenGeometry.GetWorkArea(this);
         }
 
         private void ApplyWindowBounds(bool compact)
@@ -763,8 +687,9 @@ namespace WindowsNotch
 
         private void ApplySource(string appId)
         {
-            Color? color = GetSourceColor(appId);
-            string name = GetSourceName(appId);
+            var source = SourceApps.Find(appId);
+            Color? color = source?.Color;
+            string name = source?.Name ?? string.Empty;
 
             if (color is Color accent && !string.IsNullOrWhiteSpace(name))
             {
@@ -786,25 +711,22 @@ namespace WindowsNotch
 
         private void ApplySourceLogo(string appId)
         {
-            string id = (appId ?? string.Empty).ToLowerInvariant();
+            string? logoKey = SourceApps.Find(appId)?.LogoKey;
 
-            bool isSpotify = id.Contains("spotify");
-            bool isChrome = id.Contains("chrome");
-
-            SpotifyLogo.Visibility = isSpotify
+            SpotifyLogo.Visibility = logoKey == "SpotifyLogoImage"
                 ? Visibility.Visible
                 : Visibility.Collapsed;
-            ChromeLogo.Visibility = isChrome
+            ChromeLogo.Visibility = logoKey == "ChromeLogoImage"
                 ? Visibility.Visible
                 : Visibility.Collapsed;
-            GenericSourceLogo.Visibility = isSpotify || isChrome
-                ? Visibility.Collapsed
-                : Visibility.Visible;
+            GenericSourceLogo.Visibility = logoKey == null
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
         private void ApplyAccentBrushes()
         {
-            _accentBrush = Frozen(_accentColor.R, _accentColor.G, _accentColor.B);
+            _accentBrush = FrozenBrushes.Create(_accentColor.R, _accentColor.G, _accentColor.B);
             _accentSoftBrush = new SolidColorBrush(
                 Color.FromArgb(0xB4, _accentColor.R, _accentColor.G, _accentColor.B));
             _accentSoftBrush.Freeze();
@@ -819,14 +741,8 @@ namespace WindowsNotch
 
         private void UpdateAmbientGlow()
         {
-            string id = (_media?.SourceAppId ?? string.Empty).ToLowerInvariant();
-
-            string image = id switch
-            {
-                _ when id.Contains("spotify") => "layer%20blur%20green.png",
-                _ when id.Contains("chrome") => "layer%20blur%20red.png",
-                _ => "layer%20blur%20blue.png"
-            };
+            string image = SourceApps.Find(_media?.SourceAppId)?.GlowImage
+                ?? "layer%20blur%20blue.png";
 
             LyricsGlowImage.Source = new BitmapImage(
                 new Uri($"pack://application:,,,/assets/{image}", UriKind.Absolute));
@@ -848,44 +764,6 @@ namespace WindowsNotch
             };
 
             element.BeginAnimation(OpacityProperty, fade);
-        }
-
-        private static Color GetAmbientGlowColor(string? appId)
-        {
-            string id = (appId ?? string.Empty).ToLowerInvariant();
-
-            if (id.Contains("spotify")) return Color.FromRgb(0x1E, 0xD7, 0x60);
-            if (id.Contains("chrome")) return Color.FromRgb(0xEA, 0x43, 0x35);
-
-            return Color.FromRgb(0x3D, 0x7E, 0xFF);
-        }
-
-        private static string GetSourceName(string appId)
-        {
-            string id = (appId ?? string.Empty).ToLowerInvariant();
-
-            if (id.Contains("spotify")) return "Spotify";
-            if (id.Contains("youtube")) return "YouTube";
-            if (id.Contains("chrome")) return "Chrome";
-            if (id.Contains("msedge") || id.Contains("edge")) return "Edge";
-            if (id.Contains("firefox")) return "Firefox";
-            if (id.Contains("foobar")) return "foobar2000";
-
-            return string.Empty;
-        }
-
-        private static Color? GetSourceColor(string appId)
-        {
-            string id = (appId ?? string.Empty).ToLowerInvariant();
-
-            if (id.Contains("spotify")) return Color.FromRgb(0x1D, 0xB9, 0x54);
-            if (id.Contains("chrome")) return Color.FromRgb(0xEA, 0x43, 0x35);
-            if (id.Contains("msedge") || id.Contains("edge")) return Color.FromRgb(0x00, 0x78, 0xD4);
-            if (id.Contains("firefox")) return Color.FromRgb(0xFF, 0x71, 0x39);
-            if (id.Contains("youtube")) return Color.FromRgb(0xFF, 0x00, 0x00);
-            if (id.Contains("foobar")) return Color.FromRgb(0xC8, 0xC8, 0xD0);
-
-            return null;
         }
 
         private void UpdatePlayPause(bool isPlaying)
@@ -1364,7 +1242,7 @@ namespace WindowsNotch
 
             string firstLine = string.Join(" · ", parts);
 
-            string source = GetSourceName(media.SourceAppId);
+            string source = SourceApps.Find(media.SourceAppId)?.Name ?? string.Empty;
             string duration = media.Duration > TimeSpan.Zero
                 ? FormatTime(media.Duration)
                 : string.Empty;
@@ -1377,11 +1255,5 @@ namespace WindowsNotch
                     .Where(value => !string.IsNullOrWhiteSpace(value)));
         }
 
-        private static SolidColorBrush Frozen(byte r, byte g, byte b)
-        {
-            var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
-            brush.Freeze();
-            return brush;
-        }
     }
 }
