@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -14,10 +13,7 @@ namespace WindowsNotch.Conversion
         bool Success,
         string? OutputPath,
         string? Error,
-        IReadOnlyList<string> Warnings,
-        bool IsScannedPdf,
-        bool Cancelled,
-        bool TimedOut);
+        bool Cancelled);
 
     public sealed class ConversionClient
     {
@@ -93,20 +89,10 @@ namespace WindowsNotch.Conversion
                             false,
                             null,
                             "Cancelled.",
-                            Array.Empty<string>(),
-                            false,
-                            true,
-                            false);
+                            true);
                     }
 
-                    return new ConversionResult(
-                        false,
-                        null,
-                        "Conversion timed out.",
-                        Array.Empty<string>(),
-                        false,
-                        false,
-                        true);
+                    return Failure("Conversion timed out.");
                 }
 
                 ConversionResultFile? result = null;
@@ -142,9 +128,6 @@ namespace WindowsNotch.Conversion
                     result.Success,
                     result.OutputPath,
                     result.Error,
-                    result.Warnings ?? new List<string>(),
-                    result.IsScannedPdf,
-                    false,
                     false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -153,10 +136,7 @@ namespace WindowsNotch.Conversion
                     false,
                     null,
                     "Cancelled.",
-                    Array.Empty<string>(),
-                    false,
-                    true,
-                    false);
+                    true);
             }
             catch (Exception exception)
             {
@@ -244,14 +224,7 @@ namespace WindowsNotch.Conversion
 
         private static ConversionResult Failure(string error)
         {
-            return new ConversionResult(
-                false,
-                null,
-                error,
-                Array.Empty<string>(),
-                false,
-                false,
-                false);
+            return new ConversionResult(false, null, error, false);
         }
 
         private static void TryDelete(string path)

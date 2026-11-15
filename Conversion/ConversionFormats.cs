@@ -53,10 +53,5 @@ namespace WindowsNotch.Conversion
         {
             return target == ConversionTarget.Pdf ? PdfExtension : DocxExtension;
         }
-
-        public static string GetDisplayName(ConversionTarget target)
-        {
-            return target == ConversionTarget.Pdf ? "PDF" : "DOCX";
-        }
     }
 }

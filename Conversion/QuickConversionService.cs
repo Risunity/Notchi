@@ -15,9 +15,7 @@ namespace WindowsNotch.Conversion
 
     public sealed record QuickConversionOutcome(
         string InputPath,
-        string? OutputPath,
-        string? Error,
-        bool Success);
+        string? OutputPath);
 
     public sealed class QuickConversionService
     {
@@ -70,11 +68,7 @@ namespace WindowsNotch.Conversion
 
                 if (!ConversionFormats.TryGetTarget(inputPath, out var target))
                 {
-                    outcomes.Add(new QuickConversionOutcome(
-                        inputPath,
-                        null,
-                        "Unsupported conversion.",
-                        false));
+                    outcomes.Add(new QuickConversionOutcome(inputPath, null));
                     continue;
                 }
 
@@ -90,11 +84,7 @@ namespace WindowsNotch.Conversion
                         downloadsDirectory,
                         out string outputPath))
                 {
-                    outcomes.Add(new QuickConversionOutcome(
-                        inputPath,
-                        null,
-                        "Unable to create the output path.",
-                        false));
+                    outcomes.Add(new QuickConversionOutcome(inputPath, null));
                     continue;
                 }
 
@@ -117,9 +107,7 @@ namespace WindowsNotch.Conversion
 
                     outcomes.Add(new QuickConversionOutcome(
                         inputPath,
-                        success ? result.OutputPath : null,
-                        result.Error,
-                        success));
+                        success ? result.OutputPath : null));
                 }
                 catch (OperationCanceledException)
                 {
@@ -128,11 +116,7 @@ namespace WindowsNotch.Conversion
                 catch (Exception exception)
                 {
                     CrashLogger.Log("QuickConversionService", exception);
-                    outcomes.Add(new QuickConversionOutcome(
-                        inputPath,
-                        null,
-                        exception.Message,
-                        false));
+                    outcomes.Add(new QuickConversionOutcome(inputPath, null));
                 }
             }
 

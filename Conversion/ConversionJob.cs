@@ -9,7 +9,5 @@ namespace WindowsNotch.Conversion
     public sealed record ConversionResultFile(
         bool Success,
         string? OutputPath,
-        string? Error,
-        List<string> Warnings,
-        bool IsScannedPdf);
+        string? Error);
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
@@ -121,12 +120,7 @@ namespace WindowsNotch.Conversion
 
         private static ConversionResultFile Failure(string error)
         {
-            return new ConversionResultFile(
-                false,
-                null,
-                error,
-                new List<string>(),
-                false);
+            return new ConversionResultFile(false, null, error);
         }
 
         private static void WriteResult(string jobPath, ConversionResultFile result)

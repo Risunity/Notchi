@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using OfficeIMO;
 using OfficeIMO.Pdf;
@@ -86,16 +84,13 @@ namespace WindowsNotch.Conversion
                     }
 
                     return Failure(
-                        result.Exception?.Message ?? "Word to PDF conversion failed.",
-                        ToMessages(result.Warnings));
+                        result.Exception?.Message ?? "Word to PDF conversion failed.");
                 }
 
                 return new ConversionResultFile(
                     true,
                     job.TempOutputPath,
-                    null,
-                    ToMessages(result.Warnings),
-                    false);
+                    null);
             }
             finally
             {
@@ -140,34 +135,14 @@ namespace WindowsNotch.Conversion
 
             if (!save.Succeeded)
             {
-                List<string> failureWarnings = ToMessages(conversion.Warnings)
-                    .Concat(ToMessages(save.Warnings))
-                    .Distinct(StringComparer.Ordinal)
-                    .ToList();
-
                 return Failure(
-                    save.Exception?.Message ?? "Legacy DOC to PDF conversion failed.",
-                    failureWarnings);
-            }
-
-            List<string> warnings = ToMessages(conversion.Warnings)
-                .Concat(ToMessages(save.Warnings))
-                .Distinct(StringComparer.Ordinal)
-                .ToList();
-
-            if (conversion.HasLoss || save.HasLoss)
-            {
-                warnings.Insert(
-                    0,
-                    "legacy-doc-loss: Legacy DOC content may have been omitted or changed.");
+                    save.Exception?.Message ?? "Legacy DOC to PDF conversion failed.");
             }
 
             return new ConversionResultFile(
                 true,
                 job.TempOutputPath,
-                null,
-                warnings,
-                false);
+                null);
         }
 
         private static ConversionResultFile PdfToDocx(
@@ -189,12 +164,7 @@ namespace WindowsNotch.Conversion
 
             if (string.IsNullOrWhiteSpace(read.Text))
             {
-                return new ConversionResultFile(
-                    false,
-                    null,
-                    "Scanned PDF has no text layer.",
-                    new List<string>(),
-                    true);
+                return Failure("Scanned PDF has no text layer.");
             }
 
             var import = read.ToWordDocumentResult(
@@ -207,29 +177,12 @@ namespace WindowsNotch.Conversion
             return new ConversionResultFile(
                 true,
                 job.TempOutputPath,
-                null,
-                ToMessages(import.Report?.Warnings),
-                false);
+                null);
         }
 
-        private static List<string> ToMessages(
-            IEnumerable<PdfConversionWarning>? warnings)
+        private static ConversionResultFile Failure(string error)
         {
-            return warnings?
-                .Select(warning => $"{warning.Code}: {warning.Message}")
-                .ToList() ?? new List<string>();
-        }
-
-        private static ConversionResultFile Failure(
-            string error,
-            List<string>? warnings = null)
-        {
-            return new ConversionResultFile(
-                false,
-                null,
-                error,
-                warnings ?? new List<string>(),
-                false);
+            return new ConversionResultFile(false, null, error);
         }
     }
 }
