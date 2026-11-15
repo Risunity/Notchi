@@ -38,6 +38,9 @@ namespace WindowsNotch
         public bool IsRunning => _host != null;
         public bool HasConnectedClients => !_clients.IsEmpty;
 
+        internal SmtcService Smtc => _smtcService;
+        internal SystemStatusService SystemStatus => _systemStatusService;
+
         public MobileServerService(SmtcService smtcService, SystemStatusService systemStatusService)
         {
             _instance = this;
@@ -352,9 +355,7 @@ namespace WindowsNotch
             long fileSize = 0;
             string? textContent = null;
 
-            string downloadsFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "Downloads");
+            string downloadsFolder = KnownFolders.GetDownloadsDirectory();
             if (!Directory.Exists(downloadsFolder))
             {
                 downloadsFolder = Path.GetTempPath();
@@ -809,17 +810,9 @@ namespace WindowsNotch
         private static string? GetBoundary(string? contentType)
         {
             if (string.IsNullOrEmpty(contentType)) return null;
-            var elements = contentType.Split(';');
-            foreach (var element in elements)
-            {
-                var trimmed = element.Trim();
-                if (trimmed.StartsWith("boundary=", StringComparison.OrdinalIgnoreCase))
-                {
-                    var boundary = trimmed.Substring("boundary=".Length).Trim('\"');
-                    return boundary;
-                }
-            }
-            return null;
+            if (!MediaTypeHeaderValue.TryParse(contentType, out var mediaType)) return null;
+
+            return mediaType.Boundary.HasValue ? mediaType.Boundary.Value : null;
         }
 
         private static string GetUniqueFilePath(string filePath)
@@ -892,7 +885,7 @@ namespace WindowsNotch
             });
 
             // 2. Kirim media.state saat ini sekali
-            var mediaState = _server.BuildMediaStatePayload(_server.InstanceSmtc()?.CurrentMedia);
+            var mediaState = _server.BuildMediaStatePayload(_server.Smtc?.CurrentMedia);
             await SendMessageAsync(new
             {
                 type = "media.state",
@@ -946,7 +939,7 @@ namespace WindowsNotch
             _statusTimer = new Timer(async _ =>
             {
                 if (_socket.State != WebSocketState.Open) return;
-                var snapshot = _server.InstanceStatus()?.GetCurrentSnapshot();
+                var snapshot = _server.SystemStatus?.GetCurrentSnapshot();
                 if (snapshot.HasValue)
                 {
                     var data = _server.BuildStatusPayload(snapshot.Value);
@@ -998,22 +991,6 @@ namespace WindowsNotch
                 }
             }
             catch { }
-        }
-    }
-
-    internal static class MobileServerExtensions
-    {
-        public static SmtcService? InstanceSmtc(this MobileServerService server)
-        {
-            // Helper access via reflection or field
-            var field = typeof(MobileServerService).GetField("_smtcService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(server) as SmtcService;
-        }
-
-        public static SystemStatusService? InstanceStatus(this MobileServerService server)
-        {
-            var field = typeof(MobileServerService).GetField("_systemStatusService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return field?.GetValue(server) as SystemStatusService;
         }
     }
 }

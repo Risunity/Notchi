@@ -142,22 +142,5 @@ namespace WindowsNotch
             }
         }
 
-        public static bool RevokeByToken(string sessionToken)
-        {
-            if (string.IsNullOrWhiteSpace(sessionToken)) return false;
-            var hash = ComputeSha256(sessionToken);
-
-            lock (FileLock)
-            {
-                var list = Load();
-                int count = list.RemoveAll(d => string.Equals(d.TokenHash, hash, StringComparison.OrdinalIgnoreCase));
-                if (count > 0)
-                {
-                    Save(list);
-                    return true;
-                }
-                return false;
-            }
-        }
     }
 }

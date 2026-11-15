@@ -4,18 +4,10 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Security.Cryptography;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace WindowsNotch
 {
-    public sealed class PairingRequest
-    {
-        public string DeviceId { get; init; } = string.Empty;
-        public string DeviceName { get; init; } = string.Empty;
-        public TaskCompletionSource<bool> ApprovalSource { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    }
-
     public static class PairingService
     {
         private static readonly object Gate = new();
@@ -24,12 +16,6 @@ namespace WindowsNotch
 
         // Rate limiting: IP -> List of failure timestamps in the last minute
         private static readonly ConcurrentDictionary<string, ConcurrentQueue<DateTime>> FailedAttempts = new();
-
-        /// <summary>
-        /// Event yang dipicu saat ponsel meminta pairing dan butuh persetujuan pengguna di notch PC.
-        /// Mengembalikan TaskCompletionSource yang harus di-SetResult(true) jika disetujui atau SetResult(false) jika ditolak.
-        /// </summary>
-        public static event Func<PairingRequest, Task>? OnPairingRequested;
 
         /// <summary>
         /// Dipicu saat pairing disetujui, agar jendela QR yang masih terbuka
@@ -148,41 +134,6 @@ namespace WindowsNotch
             if (string.IsNullOrEmpty(clientIp)) return;
             var queue = FailedAttempts.GetOrAdd(clientIp, _ => new ConcurrentQueue<DateTime>());
             queue.Enqueue(DateTime.UtcNow);
-        }
-
-        public static async Task<bool> RequestUserApprovalAsync(string deviceId, string deviceName)
-        {
-            var req = new PairingRequest
-            {
-                DeviceId = deviceId,
-                DeviceName = deviceName
-            };
-
-            if (OnPairingRequested != null)
-            {
-                await OnPairingRequested.Invoke(req);
-            }
-            else
-            {
-                // Jika tidak ada handler UI, tolak langsung
-                return false;
-            }
-
-            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(60));
-            var completedTask = await Task.WhenAny(req.ApprovalSource.Task, timeoutTask);
-
-            if (completedTask == req.ApprovalSource.Task)
-            {
-                bool approved = await req.ApprovalSource.Task;
-                if (approved)
-                {
-                    NotifyPairingApproved();
-                }
-
-                return approved;
-            }
-
-            return false; // timeout
         }
     }
 }
