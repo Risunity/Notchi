@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using WindowsNotch.Rewards;
 
 namespace WindowsNotch
 {
@@ -64,8 +66,14 @@ namespace WindowsNotch
             MobilePortBox.LostFocus += OnMobilePortLostFocus;
             MobileMaxFileSizeBox.LostFocus += OnMobileMaxFileSizeLostFocus;
             PairDeviceButton.Click += OnPairDeviceButtonClick;
-            GeneralTabRadio.Checked += (s, e) => SwitchTab(isMobile: false);
-            MobileTabRadio.Checked += (s, e) => SwitchTab(isMobile: true);
+            GeneralTabRadio.Checked += (s, e) => SwitchTab(SettingsTab.General);
+            MobileTabRadio.Checked += (s, e) => SwitchTab(SettingsTab.Mobile);
+            RewardTabRadio.Checked += (s, e) => SwitchTab(SettingsTab.Reward);
+
+            RedeemButton.Click += async (s, e) => await OnRedeemClickAsync();
+            UseRewardBgToggle.Click += OnUseRewardBgToggleChanged;
+            ReleaseDeviceButton.Click += async (s, e) => await OnReleaseDeviceClickAsync();
+            RefreshRewardUi();
 
             // Volume sistem
             _volumeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
@@ -117,11 +125,128 @@ namespace WindowsNotch
             _initializing = false;
         }
 
-        private void SwitchTab(bool isMobile)
+        private enum SettingsTab { General, Mobile, Reward }
+
+        private void SwitchTab(SettingsTab tab)
         {
-            if (GeneralTabContent == null || MobileTabContent == null) return;
-            GeneralTabContent.Visibility = isMobile ? Visibility.Collapsed : Visibility.Visible;
-            MobileTabContent.Visibility = isMobile ? Visibility.Visible : Visibility.Collapsed;
+            if (GeneralTabContent == null || MobileTabContent == null || RewardTabContent == null) return;
+            GeneralTabContent.Visibility = tab == SettingsTab.General ? Visibility.Visible : Visibility.Collapsed;
+            MobileTabContent.Visibility = tab == SettingsTab.Mobile ? Visibility.Visible : Visibility.Collapsed;
+            RewardTabContent.Visibility = tab == SettingsTab.Reward ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        // ===================== Klaim Reward =====================
+
+        private void RefreshRewardUi()
+        {
+            var stored = EntitlementStore.Load();
+            bool hasActive = stored?.Payload != null;
+
+            ActiveRewardPanel.Visibility = hasActive ? Visibility.Visible : Visibility.Collapsed;
+
+            if (hasActive && stored!.Payload != null)
+            {
+                var p = stored.Payload;
+                _settings.ClaimNumber = p.ClaimNumber;
+                _settings.RewardBgId = p.BgId;
+                _settings.RewardBadgeId = p.BadgeId;
+                _settings.RewardRarity = p.Rarity;
+                _settings.RedeemedCode = p.Code;
+
+                ActiveRewardBadgeText.Text = string.IsNullOrWhiteSpace(p.BadgeId) ? "Founding Member" : p.BadgeId;
+                ActiveRewardClaimNumberText.Text = $"#{p.ClaimNumber:D3}";
+                ActiveRewardRarityText.Text = $"Rarity: {char.ToUpper(p.Rarity[0]) + p.Rarity.Substring(1)} · Background: {p.BgId}";
+
+                UseRewardBgToggle.IsChecked = _settings.UseRewardBackground;
+            }
+        }
+
+        private async Task OnRedeemClickAsync()
+        {
+            string code = RewardCodeInput.Text.Trim();
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                SetRewardStatus("Masukkan kode klaim terlebih dahulu.", isError: true);
+                return;
+            }
+
+            RedeemButton.IsEnabled = false;
+            RewardCodeInput.IsEnabled = false;
+            SetRewardStatus(Localization.Get("Redeeming") ?? "Memproses...", isError: false);
+
+            var result = await RedeemService.RedeemCodeAsync(code);
+
+            RedeemButton.IsEnabled = true;
+            RewardCodeInput.IsEnabled = true;
+
+            if (result.Success && result.Payload != null)
+            {
+                RewardCodeInput.Text = string.Empty;
+                SetRewardStatus(result.Message ?? "Klaim berhasil!", isError: false);
+
+                _settings.UseRewardBackground = true;
+                _settings.RedeemedCode = result.Payload.Code;
+                _settings.ClaimNumber = result.Payload.ClaimNumber;
+                _settings.RewardBgId = result.Payload.BgId;
+                _settings.RewardBadgeId = result.Payload.BadgeId;
+                _settings.RewardRarity = result.Payload.Rarity;
+                SettingsStore.Save(_settings);
+
+                RefreshRewardUi();
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+            else
+            {
+                SetRewardStatus(result.Message ?? "Gagal meredeem kode.", isError: true);
+            }
+        }
+
+        private void OnUseRewardBgToggleChanged(object? sender, RoutedEventArgs e)
+        {
+            _settings.UseRewardBackground = UseRewardBgToggle.IsChecked == true;
+            SettingsStore.Save(_settings);
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private async Task OnReleaseDeviceClickAsync()
+        {
+            string code = _settings.RedeemedCode ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                var stored = EntitlementStore.Load();
+                code = stored?.Payload?.Code ?? string.Empty;
+            }
+
+            ReleaseDeviceButton.IsEnabled = false;
+            SetRewardStatus(Localization.Get("ReleasingDevice") ?? "Melepas perangkat...", isError: false);
+
+            var result = await RedeemService.ReleaseDeviceAsync(code);
+
+            ReleaseDeviceButton.IsEnabled = true;
+
+            // Clear local settings
+            if (!string.IsNullOrWhiteSpace(_settings.RewardBgId))
+            {
+                RewardAssetCache.ClearAssets(_settings.RewardBgId);
+            }
+
+            _settings.RedeemedCode = null;
+            _settings.ClaimNumber = 0;
+            _settings.RewardBgId = null;
+            _settings.RewardBadgeId = null;
+            _settings.RewardRarity = null;
+            SettingsStore.Save(_settings);
+
+            RefreshRewardUi();
+            SetRewardStatus(result.Message ?? "Perangkat telah dilepas.", isError: !result.Success);
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void SetRewardStatus(string message, bool isError)
+        {
+            RewardStatusText.Text = message;
+            RewardStatusText.Foreground = isError ? ErrorBrush : MutedBrush;
+            RewardStatusText.Visibility = string.IsNullOrWhiteSpace(message) ? Visibility.Collapsed : Visibility.Visible;
         }
 
         // ===================== Volume sistem =====================

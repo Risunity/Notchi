@@ -235,6 +235,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <RadioButton x:Name="GeneralTabRadio" Grid.Column="0"
                                  GroupName="SettingsTabs" IsChecked="True"
@@ -243,6 +244,10 @@
                     <RadioButton x:Name="MobileTabRadio" Grid.Column="1"
                                  GroupName="SettingsTabs"
                                  Content="Notchi Mobile"
+                                 Style="{StaticResource SettingsTabRadio}"/>
+                    <RadioButton x:Name="RewardTabRadio" Grid.Column="2"
+                                 GroupName="SettingsTabs"
+                                 Content="{DynamicResource RewardTab}"
                                  Style="{StaticResource SettingsTabRadio}"/>
                 </Grid>
             </Border>
@@ -518,6 +523,92 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- TAB 3: REWARD -->
+                <ScrollViewer x:Name="RewardTabContent" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,2,0">
+                        <!-- Group 1: Klaim Reward -->
+                        <TextBlock Text="{DynamicResource RewardTitle}" Foreground="#6E6E73"
+                                   FontSize="8.5" FontWeight="Bold" Margin="4,0,0,4"/>
+                        <Border Background="#202024" CornerRadius="9" Padding="12,10" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource RewardDescription}"
+                                           Foreground="#85858D" FontSize="9.5" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Background="#161618" BorderBrush="#2C2C30" BorderThickness="1"
+                                            CornerRadius="6" Padding="8,4" Margin="0,0,8,0">
+                                        <TextBox x:Name="RewardCodeInput"
+                                                 Background="Transparent" BorderThickness="0"
+                                                 Foreground="#F5F5F7" CaretBrush="#3D7EFF"
+                                                 FontSize="11" FontFamily="Consolas"
+                                                 VerticalAlignment="Center"/>
+                                    </Border>
+                                    <Button x:Name="RedeemButton" Grid.Column="1"
+                                            Content="{DynamicResource Redeem}"
+                                            Style="{StaticResource PrimaryActionButton}"
+                                            Padding="14,5" FontSize="10"/>
+                                </Grid>
+
+                                <TextBlock x:Name="RewardStatusText"
+                                           Text="" Foreground="#85858D"
+                                           FontSize="9" TextWrapping="Wrap"
+                                           Visibility="Collapsed" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Group 2: Status Reward Aktif -->
+                        <Border x:Name="ActiveRewardPanel" Background="#202024" CornerRadius="9" Padding="12,10" Margin="0,0,0,12" Visibility="Collapsed">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock x:Name="ActiveRewardBadgeText" Text="Founding Member"
+                                                       Foreground="#F5F5F7" FontSize="11" FontWeight="SemiBold"/>
+                                            <Border Background="#2C2C30" CornerRadius="4" Padding="5,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock x:Name="ActiveRewardClaimNumberText" Text="#001"
+                                                           Foreground="#3D7EFF" FontSize="9" FontWeight="Bold"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock x:Name="ActiveRewardRarityText" Text="Rarity: Rare"
+                                                   Foreground="#85858D" FontSize="8.5" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Toggle Gunakan Background -->
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{DynamicResource RewardUseBgTitle}" Foreground="#F5F5F7" FontSize="10.5" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{DynamicResource RewardUseBgDescription}" Foreground="#85858D" FontSize="8.5"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="UseRewardBgToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}"
+                                              VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </Grid>
+
+                                <Border Height="1" Background="#2C2C30" Margin="0,2,0,10"/>
+
+                                <!-- Tombol Lepas Perangkat -->
+                                <Button x:Name="ReleaseDeviceButton"
+                                        Content="{DynamicResource ReleaseDevice}"
+                                        Style="{StaticResource DangerActionButton}"
+                                        HorizontalAlignment="Left" Padding="10,4" FontSize="9"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
