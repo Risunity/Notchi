@@ -15,11 +15,15 @@ namespace WindowsNotch.Rewards
 
         public static string GetExpandPath(string bgId)
         {
+            string png = Path.Combine(EntitlementStore.RewardsDirectory, $"{bgId}_expand.png");
+            if (File.Exists(png)) return png;
             return Path.Combine(EntitlementStore.RewardsDirectory, $"{bgId}_expand.webp");
         }
 
         public static string GetCompactPath(string bgId)
         {
+            string png = Path.Combine(EntitlementStore.RewardsDirectory, $"{bgId}_compact.png");
+            if (File.Exists(png)) return png;
             return Path.Combine(EntitlementStore.RewardsDirectory, $"{bgId}_compact.webp");
         }
 
@@ -75,6 +79,16 @@ namespace WindowsNotch.Rewards
             try
             {
                 if (!File.Exists(filePath)) return null;
+
+                // Bila file berekstensi .webp namun versi .png tersedia, gunakan .png untuk kompatibilitas penuh WPF
+                if (filePath.EndsWith(".webp", StringComparison.OrdinalIgnoreCase))
+                {
+                    string pngPath = Path.ChangeExtension(filePath, ".png");
+                    if (File.Exists(pngPath))
+                    {
+                        filePath = pngPath;
+                    }
+                }
 
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
