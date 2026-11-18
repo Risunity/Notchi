@@ -22,6 +22,41 @@ namespace WindowsNotch.Rewards
     {
         public const string DefaultBaseUrl = "https://notchi-web-tau.vercel.app";
 
+        public static string BaseUrl
+        {
+            get
+            {
+                string? envUrl = Environment.GetEnvironmentVariable("NOTCHI_API_BASE_URL");
+                if (!string.IsNullOrWhiteSpace(envUrl)) return envUrl.TrimEnd('/');
+                return DefaultBaseUrl;
+            }
+        }
+
+        public static async Task<string> ResolveBaseUrlAsync(string? explicitBaseUrl = null)
+        {
+            if (!string.IsNullOrWhiteSpace(explicitBaseUrl)) return explicitBaseUrl.TrimEnd('/');
+
+            string? envUrl = Environment.GetEnvironmentVariable("NOTCHI_API_BASE_URL");
+            if (!string.IsNullOrWhiteSpace(envUrl)) return envUrl.TrimEnd('/');
+
+            // Otomatis deteksi server lokal Astro jika sedang berjalan di localhost:4321
+            try
+            {
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(2));
+                using var checkResp = await Http.GetAsync("http://localhost:4321/favicon.ico", cts.Token);
+                if (checkResp.IsSuccessStatusCode || (int)checkResp.StatusCode < 500)
+                {
+                    return "http://localhost:4321";
+                }
+            }
+            catch
+            {
+                // Server lokal tidak aktif atau timeout, gunakan URL production
+            }
+
+            return DefaultBaseUrl;
+        }
+
         private static readonly HttpClient Http = new()
         {
             Timeout = TimeSpan.FromSeconds(20)
@@ -98,13 +133,14 @@ namespace WindowsNotch.Rewards
             public string? Message { get; set; }
         }
 
-        public static async Task<RedeemResult> RedeemCodeAsync(string rawCode, string baseUrl = DefaultBaseUrl)
+        public static async Task<RedeemResult> RedeemCodeAsync(string rawCode, string? baseUrl = null)
         {
             if (string.IsNullOrWhiteSpace(rawCode))
             {
                 return new RedeemResult(false, "empty_code", "Kode redeem tidak boleh kosong.", null);
             }
 
+            string targetBaseUrl = await ResolveBaseUrlAsync(baseUrl);
             string code = rawCode.Trim().ToUpperInvariant();
             string deviceHash = DeviceId.GetDeviceHash();
 
@@ -114,20 +150,39 @@ namespace WindowsNotch.Rewards
                 string jsonBody = JsonSerializer.Serialize(body);
                 using var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
 
-                string url = $"{baseUrl.TrimEnd('/')}/api/redeem";
+                string url = $"{targetBaseUrl}/api/redeem";
                 using var response = await Http.PostAsync(url, content);
                 string responseText = await response.Content.ReadAsStringAsync();
 
-                var result = JsonSerializer.Deserialize<RedeemApiResponse>(responseText, JsonOpts);
+                RedeemApiResponse? result = null;
+                if (!string.IsNullOrWhiteSpace(responseText))
+                {
+                    try
+                    {
+                        result = JsonSerializer.Deserialize<RedeemApiResponse>(responseText, JsonOpts);
+                    }
+                    catch (JsonException)
+                    {
+                        // Respon bukan format JSON yang valid (misal teks/HTML error Vercel)
+                    }
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string msg = result?.Message
+                        ?? GetLocalizedErrorMessage(result?.Error)
+                        ?? $"Server mengembalikan status error {(int)response.StatusCode}. Silakan coba lagi nanti.";
+                    return new RedeemResult(false, result?.Error ?? "server_error", msg, null);
+                }
 
                 if (result == null)
                 {
                     return new RedeemResult(false, "invalid_response", "Respon server tidak valid.", null);
                 }
 
-                if (!response.IsSuccessStatusCode || !result.Success)
+                if (!result.Success)
                 {
-                    string msg = result.Message ?? GetLocalizedErrorMessage(result.Error);
+                    string msg = result.Message ?? GetLocalizedErrorMessage(result.Error) ?? "Gagal memproses kode klaim.";
                     return new RedeemResult(false, result.Error ?? "unknown_error", msg, null);
                 }
 
@@ -147,7 +202,7 @@ namespace WindowsNotch.Rewards
                 EntitlementStore.Save(result.Entitlement, verifiedPayload);
 
                 // Fetch asset download URLs
-                await FetchAndCacheAssetsAsync(result.Entitlement, baseUrl);
+                await FetchAndCacheAssetsAsync(result.Entitlement, targetBaseUrl);
 
                 return new RedeemResult(true, null, "Redeem berhasil!", verifiedPayload);
             }
@@ -163,11 +218,12 @@ namespace WindowsNotch.Rewards
             }
         }
 
-        public static async Task<bool> FetchAndCacheAssetsAsync(string entitlementToken, string baseUrl = DefaultBaseUrl)
+        public static async Task<bool> FetchAndCacheAssetsAsync(string entitlementToken, string? baseUrl = null)
         {
             try
             {
-                string url = $"{baseUrl.TrimEnd('/')}/api/assets";
+                string targetBaseUrl = await ResolveBaseUrlAsync(baseUrl);
+                string url = $"{targetBaseUrl}/api/assets";
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", entitlementToken);
 
@@ -175,7 +231,16 @@ namespace WindowsNotch.Rewards
                 if (!response.IsSuccessStatusCode) return false;
 
                 string text = await response.Content.ReadAsStringAsync();
-                var assetResp = JsonSerializer.Deserialize<AssetsApiResponse>(text, JsonOpts);
+                AssetsApiResponse? assetResp = null;
+                try
+                {
+                    assetResp = JsonSerializer.Deserialize<AssetsApiResponse>(text, JsonOpts);
+                }
+                catch (JsonException)
+                {
+                    return false;
+                }
+
                 if (assetResp == null || !assetResp.Success || string.IsNullOrWhiteSpace(assetResp.BgId))
                 {
                     return false;
@@ -190,13 +255,14 @@ namespace WindowsNotch.Rewards
             }
         }
 
-        public static async Task<ReleaseResult> ReleaseDeviceAsync(string code, string baseUrl = DefaultBaseUrl)
+        public static async Task<ReleaseResult> ReleaseDeviceAsync(string code, string? baseUrl = null)
         {
             if (string.IsNullOrWhiteSpace(code))
             {
                 return new ReleaseResult(false, "Kode tidak tersedia.");
             }
 
+            string targetBaseUrl = await ResolveBaseUrlAsync(baseUrl);
             string deviceHash = DeviceId.GetDeviceHash();
 
             try
@@ -205,11 +271,19 @@ namespace WindowsNotch.Rewards
                 string jsonBody = JsonSerializer.Serialize(body);
                 using var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
 
-                string url = $"{baseUrl.TrimEnd('/')}/api/release-device";
+                string url = $"{targetBaseUrl}/api/release-device";
                 using var response = await Http.PostAsync(url, content);
                 string responseText = await response.Content.ReadAsStringAsync();
 
-                var result = JsonSerializer.Deserialize<ReleaseApiResponse>(responseText, JsonOpts);
+                ReleaseApiResponse? result = null;
+                try
+                {
+                    result = JsonSerializer.Deserialize<ReleaseApiResponse>(responseText, JsonOpts);
+                }
+                catch (JsonException)
+                {
+                    // Ignore JSON deserialization error during release
+                }
 
                 // Clear locally regardless to unlink
                 EntitlementStore.Clear();
@@ -229,8 +303,10 @@ namespace WindowsNotch.Rewards
             }
         }
 
-        private static string GetLocalizedErrorMessage(string? errorCode)
+        private static string? GetLocalizedErrorMessage(string? errorCode)
         {
+            if (string.IsNullOrWhiteSpace(errorCode)) return null;
+
             return errorCode switch
             {
                 "code_not_found" => "Kode klaim tidak ditemukan atau sudah kadaluarsa.",
@@ -238,7 +314,7 @@ namespace WindowsNotch.Rewards
                 "rate_limited" => "Terlalu banyak percobaan. Silakan coba lagi beberapa saat lagi.",
                 "invalid_code_format" => "Format kode klaim salah. Contoh: NOTCHI-XXXX-XXXX",
                 "invalid_request" => "Permintaan klaim tidak lengkap.",
-                _ => "Gagal memproses kode klaim."
+                _ => null
             };
         }
     }
