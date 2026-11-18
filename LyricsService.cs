@@ -105,7 +105,11 @@ namespace WindowsNotch
         public static string BuildCacheKey(MediaInfo media)
         {
             var (title, artist) = Normalize(media.Title, media.Artist);
-            int duration = media.Duration > TimeSpan.Zero
+            // Exclude duration=0 from the key: Chrome often fires a metadata event
+            // before the timeline is populated, then fires again with the real duration.
+            // Using a duration-independent key means the second event hits the cache
+            // instead of triggering a redundant (and potentially stale) fetch.
+            int duration = media.Duration > TimeSpan.FromSeconds(10)
                 ? (int)Math.Round(media.Duration.TotalSeconds)
                 : 0;
 
@@ -353,12 +357,18 @@ namespace WindowsNotch
             title = title?.Trim() ?? string.Empty;
             artist = artist?.Trim() ?? string.Empty;
 
-            title = RemoveBrackets(title);
-            artist = RemoveBrackets(artist);
+            // Step 1: Remove noise brackets (Official Video, Lyrics, etc.) first.
+            // Do NOT apply FeatureRegex yet — it is greedy and would eat "- Song Title"
+            // when the YouTube title is "Artist ft. X - Song Title (Official...)".
+            title = NoiseBracketRegex.Replace(title, string.Empty);
+            artist = NoiseBracketRegex.Replace(artist, string.Empty);
 
             artist = TopicSuffixRegex.Replace(artist, string.Empty);
             artist = VevoSuffixRegex.Replace(artist, string.Empty);
 
+            // Step 2: Split on " - " BEFORE removing feat/ft so that
+            // "Hindia ft. X, Y - Selebrisik" splits into prefix="Hindia ft. X, Y"
+            // and suffix="Selebrisik", then we can safely strip the featuring part.
             int separator = title.IndexOf(" - ", StringComparison.Ordinal);
             if (separator > 0)
             {
@@ -367,17 +377,36 @@ namespace WindowsNotch
 
                 if (!string.IsNullOrWhiteSpace(suffix))
                 {
+                    // Strip feat from the prefix so we can compare it to artist.
+                    string cleanPrefix = FeatureRegex.Replace(prefix, string.Empty).Trim();
+
                     if (string.IsNullOrWhiteSpace(artist))
                     {
-                        artist = prefix;
+                        // No artist from SMTC — derive it from the prefix.
+                        artist = cleanPrefix;
                         title = suffix;
                     }
-                    else if (string.Equals(prefix, artist, StringComparison.OrdinalIgnoreCase))
+                    else
                     {
-                        title = suffix;
+                        // Artist known — only strip the song portion if the prefix
+                        // matches (with or without feat) or starts with the artist name.
+                        bool prefixMatchesArtist =
+                            string.Equals(cleanPrefix, artist, StringComparison.OrdinalIgnoreCase) ||
+                            cleanPrefix.StartsWith(artist, StringComparison.OrdinalIgnoreCase);
+
+                        if (prefixMatchesArtist)
+                        {
+                            title = suffix;
+                        }
                     }
                 }
             }
+
+            // Step 3: Now it is safe to apply FeatureRegex — the song title is already
+            // isolated, so the regex can only strip a trailing "ft. ..." on the title
+            // (rare) without accidentally removing the whole song name.
+            title = FeatureRegex.Replace(title, string.Empty);
+            artist = FeatureRegex.Replace(artist, string.Empty);
 
             title = CleanSpacing(title);
             artist = CleanSpacing(artist);
