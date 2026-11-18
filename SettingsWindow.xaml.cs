@@ -137,6 +137,16 @@ namespace WindowsNotch
 
         // ===================== Klaim Reward =====================
 
+        private static string FormatBadgeName(string? badgeId)
+        {
+            if (string.IsNullOrWhiteSpace(badgeId)) return "Founding Member";
+            string clean = badgeId.StartsWith("badge_", StringComparison.OrdinalIgnoreCase)
+                ? badgeId.Substring(6)
+                : badgeId;
+            clean = clean.Replace('_', ' ');
+            return System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(clean);
+        }
+
         private void RefreshRewardUi()
         {
             var stored = EntitlementStore.Load();
@@ -153,9 +163,21 @@ namespace WindowsNotch
                 _settings.RewardRarity = p.Rarity;
                 _settings.RedeemedCode = p.Code;
 
-                ActiveRewardBadgeText.Text = string.IsNullOrWhiteSpace(p.BadgeId) ? "Founding Member" : p.BadgeId;
+                ActiveRewardBadgeText.Text = FormatBadgeName(p.BadgeId);
                 ActiveRewardClaimNumberText.Text = $"#{p.ClaimNumber:D3}";
-                ActiveRewardRarityText.Text = $"Rarity: {char.ToUpper(p.Rarity[0]) + p.Rarity.Substring(1)} · Background: {p.BgId}";
+                string rarity = string.IsNullOrWhiteSpace(p.Rarity) ? "Common" : char.ToUpper(p.Rarity[0]) + p.Rarity.Substring(1);
+                ActiveRewardRarityText.Text = $"Rarity: {rarity} · Background: {p.BgId}";
+
+                // Muat pratinjau gambar background compact
+                if (!string.IsNullOrWhiteSpace(p.BgId) && RewardAssetCache.HasAssets(p.BgId))
+                {
+                    string compactPath = RewardAssetCache.GetCompactPath(p.BgId);
+                    ActiveRewardCompactImage.Source = RewardAssetCache.LoadBitmap(compactPath);
+                }
+                else
+                {
+                    ActiveRewardCompactImage.Source = null;
+                }
 
                 UseRewardBgToggle.IsChecked = _settings.UseRewardBackground;
             }
