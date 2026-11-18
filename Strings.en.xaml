@@ -164,7 +164,7 @@
     <sys:String x:Key="RewardActive">Reward Active</sys:String>
     <sys:String x:Key="RewardNotActive">No active rewards on this device</sys:String>
     <sys:String x:Key="RewardUseBgTitle">Use Reward Background</sys:String>
-    <sys:String x:Key="RewardUseBgDescription">Display reward illustration on the media player card</sys:String>
+    <sys:String x:Key="RewardUseBgDescription">Display reward illustration on the notchi</sys:String>
     <sys:String x:Key="ReleaseDevice">Release This Device</sys:String>
     <sys:String x:Key="ReleasingDevice">Releasing device...</sys:String>
     <sys:String x:Key="FoundingMember">Founding Member</sys:String>

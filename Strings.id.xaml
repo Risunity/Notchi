@@ -165,7 +165,7 @@
     <sys:String x:Key="RewardActive">Reward Aktif</sys:String>
     <sys:String x:Key="RewardNotActive">Belum ada reward aktif di perangkat ini</sys:String>
     <sys:String x:Key="RewardUseBgTitle">Gunakan Background Reward</sys:String>
-    <sys:String x:Key="RewardUseBgDescription">Tampilkan ilustrasi reward di kartu pemutar musik</sys:String>
+    <sys:String x:Key="RewardUseBgDescription">Tampilkan ilustrasi reward di notchi</sys:String>
     <sys:String x:Key="ReleaseDevice">Lepas Perangkat Ini</sys:String>
     <sys:String x:Key="ReleasingDevice">Melepas perangkat...</sys:String>
     <sys:String x:Key="FoundingMember">Founding Member</sys:String>
