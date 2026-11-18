@@ -37,6 +37,7 @@ namespace WindowsNotch
         private const double SleeveShoulderInset = 14;
         private const double SleeveSpanInset = SleeveShoulderInset + SleeveRim;
         private const double SleeveCornerRadius = 20;
+        private const double DragBezelInset = 4.5;
         private const double FeatureBarHeight = 34;
         private const double FeatureBarGap = 4;
         private const double FeatureBarExtraHeight = FeatureBarGap + FeatureBarHeight + 10;
@@ -296,6 +297,7 @@ namespace WindowsNotch
                 _isDragging = false;
                 PillHost.Cursor = Cursors.Hand;
                 UpdateFeatureBarVisibility();
+                UpdateContentMargin();
                 UpdateNotchShape(PillHost.RenderSize);
             };
 
@@ -1121,14 +1123,15 @@ namespace WindowsNotch
             {
                 RewardBackgroundHost.Visibility = Visibility.Collapsed;
                 RewardBadge.Visibility = Visibility.Collapsed;
+                NotchAccent.Visibility = Visibility.Visible;
                 return;
             }
 
-            bool hasMedia = _media != null;
-            if (!hasMedia || !RewardAssetCache.HasAssets(_settings.RewardBgId))
+            if (!RewardAssetCache.HasAssets(_settings.RewardBgId))
             {
                 RewardBackgroundHost.Visibility = Visibility.Collapsed;
                 RewardBadge.Visibility = Visibility.Collapsed;
+                NotchAccent.Visibility = Visibility.Visible;
                 return;
             }
 
@@ -1149,7 +1152,7 @@ namespace WindowsNotch
                 NotchAccent.Visibility = Visibility.Visible;
             }
 
-            if (_settings.ClaimNumber > 0)
+            if (_settings.ClaimNumber > 0 && _media != null)
             {
                 RewardBadge.Visibility = Visibility.Visible;
                 RewardBadge.ToolTip = $"Founding Member #{_settings.ClaimNumber:D3}";
@@ -1160,38 +1163,11 @@ namespace WindowsNotch
             }
         }
 
-        // Progress bar mengikuti warna sumber media dengan gradasi terang -> warna.
+        // Progress bar selalu berwarna putih solid tanpa gradasi untuk semua media player.
         private void UpdateProgressFill(MediaInfo? media)
         {
-            Color? sourceColor = media == null ? null : SourceApps.Find(media.SourceAppId)?.Color;
-            Brush brush = sourceColor is Color color
-                ? CreateProgressBrush(color)
-                : (TryFindResource("MediaProgressBrush") as Brush ?? Brushes.White);
-
-            ProgressSlider.Foreground = brush;
-            LastMediaProgressSlider.Foreground = brush;
-        }
-
-        private static Brush CreateProgressBrush(Color accent)
-        {
-            var brush = new LinearGradientBrush
-            {
-                StartPoint = new Point(0, 0),
-                EndPoint = new Point(1, 0)
-            };
-            brush.GradientStops.Add(new GradientStop(Blend(accent, Colors.White, 0.65), 0));
-            brush.GradientStops.Add(new GradientStop(Blend(accent, Colors.White, 0.3), 0.5));
-            brush.GradientStops.Add(new GradientStop(accent, 1));
-            brush.Freeze();
-            return brush;
-        }
-
-        private static Color Blend(Color a, Color b, double t)
-        {
-            return Color.FromRgb(
-                (byte)(a.R + (b.R - a.R) * t),
-                (byte)(a.G + (b.G - a.G) * t),
-                (byte)(a.B + (b.B - a.B) * t));
+            ProgressSlider.Foreground = Brushes.White;
+            LastMediaProgressSlider.Foreground = Brushes.White;
         }
 
         // Arah gradasi mengikuti sisi yang menempel ke layar.
@@ -1371,22 +1347,13 @@ namespace WindowsNotch
             double h = size.Height;
             if (w < 1 || h < 1) return;
 
-            if (_isDragging)
-            {
-                double radius = Math.Min(w, h) / 2;
-                var capsule = new RectangleGeometry(new Rect(0, 0, w, h), radius, radius);
-                capsule.Freeze();
-                NotchSleeve.Data = capsule;
-                NotchShape.Data = capsule;
-                return;
-            }
-
             if (_domeMode)
             {
                 // Mode bukit: lengkungan hitam kecil, tanpa isi.
                 NotchSleeve.Data = CreateDomeGeometry(w, h);
                 NotchShape.Visibility = Visibility.Collapsed;
                 NotchAccent.Visibility = Visibility.Collapsed;
+                RewardBackgroundHost.Visibility = Visibility.Collapsed;
                 NotchSheen.Visibility = Visibility.Collapsed;
                 NotchOuterBorder.Visibility = Visibility.Collapsed;
                 NotchBorder.Visibility = Visibility.Collapsed;
@@ -1394,12 +1361,31 @@ namespace WindowsNotch
             }
 
             NotchShape.Visibility = Visibility.Visible;
-            NotchAccent.Visibility = Visibility.Visible;
+            bool useReward = _settings.UseRewardBackground
+                && !string.IsNullOrWhiteSpace(_settings.RewardBgId)
+                && RewardAssetCache.HasAssets(_settings.RewardBgId);
+            NotchAccent.Visibility = useReward ? Visibility.Collapsed : Visibility.Visible;
             NotchSheen.Visibility = Visibility.Visible;
             NotchOuterBorder.Visibility = Visibility.Visible;
             NotchBorder.Visibility = Visibility.Visible;
-            NotchSleeve.Data = CreateSleeveGeometry(w, h);
-            NotchShape.Data = CreateInnerCapsuleGeometry(w, h);
+
+            Geometry innerCapsule;
+            if (_isDragging)
+            {
+                double radius = Math.Min(w, h) / 2;
+                var outerCapsule = new RectangleGeometry(new Rect(0, 0, w, h), radius, radius);
+                outerCapsule.Freeze();
+                NotchSleeve.Data = outerCapsule;
+                innerCapsule = CreateDragInnerCapsuleGeometry(w, h);
+            }
+            else
+            {
+                NotchSleeve.Data = CreateSleeveGeometry(w, h);
+                innerCapsule = CreateInnerCapsuleGeometry(w, h);
+            }
+
+            NotchShape.Data = innerCapsule;
+            RewardBackgroundHost.Clip = innerCapsule;
         }
 
         private Geometry CreateDomeGeometry(double w, double h)
@@ -1540,6 +1526,19 @@ namespace WindowsNotch
             return capsule;
         }
 
+        private static Geometry CreateDragInnerCapsuleGeometry(double w, double h)
+        {
+            double inset = DragBezelInset;
+            double innerWidth = Math.Max(1, w - inset * 2);
+            double innerHeight = Math.Max(1, h - inset * 2);
+            double radius = Math.Min(innerWidth, innerHeight) / 2;
+
+            var capsule = new RectangleGeometry(
+                new Rect(inset, inset, innerWidth, innerHeight), radius, radius);
+            capsule.Freeze();
+            return capsule;
+        }
+
         private void SetAnchor(NotchAnchor anchor)
         {
             _anchor = anchor;
@@ -1591,7 +1590,7 @@ namespace WindowsNotch
         {
             // Tepi capsule dalam menjorok ke dalam (SleeveSpanInset di sisi yang
             // tidak menempel layar), jadi konten diberi margin agar tidak keluar.
-            double sideMargin = IsSideAnchor && !_isExpanded ? 0 : SleeveSpanInset + 2;
+            double sideMargin = _isDragging ? 10 : (IsSideAnchor && !_isExpanded ? 0 : SleeveSpanInset + 2);
             ContentRoot.Margin = new Thickness(sideMargin, 0, sideMargin, 0);
         }
 
@@ -1719,6 +1718,7 @@ namespace WindowsNotch
 
         private void OnPillMouseMove(object sender, MouseEventArgs e)
         {
+            if (_domeMode) return;
             if (!_isDragging || e.LeftButton != MouseButtonState.Pressed) return;
             if (!ScreenGeometry.TryGetCursor(this, out _, out var cursor)) return;
 
@@ -1748,6 +1748,8 @@ namespace WindowsNotch
         // Saat mulai digeser: ciutkan notch ke ukuran collapsed dan bentuk kapsul rapi
         private void BeginDragVisual(Point cursor)
         {
+            if (_domeMode) return;
+
             if (_isExpanded)
             {
                 _isExpanded = false;
@@ -1767,6 +1769,7 @@ namespace WindowsNotch
             Width = cw;
             Height = ch;
             UpdateFeatureBarVisibility();
+            UpdateContentMargin();
 
             // Jaga posisi notch tetap di bawah kursor setelah ukuran berubah
             grabX = Math.Clamp(grabX, 0, cw);
@@ -1785,8 +1788,9 @@ namespace WindowsNotch
             _isDragging = false;
             PillHost.ReleaseMouseCapture();
             PillHost.Cursor = Cursors.Hand;
+            UpdateContentMargin();
 
-            if (!_dragMoved)
+            if (!_dragMoved || _domeMode)
             {
                 // Klik dua kali cepat: toggle mode bukit (dome hitam, tanpa isi)
                 var now = DateTime.Now;
@@ -1812,7 +1816,10 @@ namespace WindowsNotch
                         if (PillHost.IsMouseOver)
                             ExpandNotch();
                         else
+                        {
                             UpdateNotchShape(PillHost.RenderSize);
+                            UpdateRewardBackground();
+                        }
                     }
                     return;
                 }
@@ -2326,6 +2333,7 @@ namespace WindowsNotch
         private void UpdateVisualState()
         {
             UpdateFeatureBarVisibility();
+            UpdateContentMargin();
 
             bool hasMedia = _media != null;
             bool sideCollapsed = IsSideAnchor && !_isExpanded;
