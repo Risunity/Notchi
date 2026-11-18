@@ -39,13 +39,8 @@
         <FontFamily x:Key="CalendarDisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
         <FontFamily x:Key="CalendarTextFont">Segoe UI Variable Text, Segoe UI</FontFamily>
 
-        <!-- Progress media: gradasi biru muda ke biru tua, tanpa ungu -->
-        <LinearGradientBrush x:Key="MediaProgressBrush" StartPoint="0,0" EndPoint="1,0">
-            <GradientStop Color="#EAF7FF" Offset="0"/>
-            <GradientStop Color="#8FD3FF" Offset="0.35"/>
-            <GradientStop Color="#4A90FF" Offset="0.7"/>
-            <GradientStop Color="#1D4ED8" Offset="1"/>
-        </LinearGradientBrush>
+        <!-- Progress media: putih solid tanpa gradasi -->
+        <SolidColorBrush x:Key="MediaProgressBrush" Color="#FFFFFFFF"/>
 
         <!-- Logo platform media, digambar sebagai vektor agar tetap tajam -->
         <DrawingImage x:Key="SpotifyLogoImage">
@@ -378,50 +373,50 @@
                                 </UniformGrid>
 
                                 <UniformGrid Grid.Row="2" Columns="7" Margin="0,2,0,0">
-                                    <Grid Width="28" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Grid Width="30" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <Border x:Name="CalendarDayCircle0" Width="26" Height="26"
                                                 CornerRadius="13" Background="Transparent"
                                                 BorderBrush="Transparent" BorderThickness="1.5"
-                                                HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                 Cursor="Hand">
                                             <TextBlock x:Name="CalendarDayText0" Style="{StaticResource CalendarDayText}"/>
                                         </Border>
                                         <Ellipse x:Name="CalendarNoteDot0" Width="4" Height="4"
                                                  Fill="#0A84FF" HorizontalAlignment="Center"
-                                                 VerticalAlignment="Bottom" Margin="0,0,0,1"
+                                                 VerticalAlignment="Bottom" Margin="0,0,0,0"
                                                  Visibility="Collapsed"/>
                                     </Grid>
-                                    <Grid Width="28" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Grid Width="30" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <Border x:Name="CalendarDayCircle1" Width="26" Height="26"
                                                 CornerRadius="13" Background="Transparent"
                                                 BorderBrush="Transparent" BorderThickness="1.5"
-                                                HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                 Cursor="Hand">
                                             <TextBlock x:Name="CalendarDayText1" Style="{StaticResource CalendarDayText}"/>
                                         </Border>
                                         <Ellipse x:Name="CalendarNoteDot1" Width="4" Height="4"
                                                  Fill="#0A84FF" HorizontalAlignment="Center"
-                                                 VerticalAlignment="Bottom" Margin="0,0,0,1"
+                                                 VerticalAlignment="Bottom" Margin="0,0,0,0"
                                                  Visibility="Collapsed"/>
                                     </Grid>
-                                    <Grid Width="28" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Grid Width="30" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <Border x:Name="CalendarDayCircle2" Width="26" Height="26"
                                                 CornerRadius="13" Background="Transparent"
                                                 BorderBrush="Transparent" BorderThickness="1.5"
-                                                HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                 Cursor="Hand">
                                             <TextBlock x:Name="CalendarDayText2" Style="{StaticResource CalendarDayText}"/>
                                         </Border>
                                         <Ellipse x:Name="CalendarNoteDot2" Width="4" Height="4"
                                                  Fill="#0A84FF" HorizontalAlignment="Center"
-                                                 VerticalAlignment="Bottom" Margin="0,0,0,1"
+                                                 VerticalAlignment="Bottom" Margin="0,0,0,0"
                                                  Visibility="Collapsed"/>
                                     </Grid>
-                                    <Grid Width="28" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <Border x:Name="CalendarDayCircle3" Width="28" Height="28"
-                                                CornerRadius="14" Background="Transparent"
+                                    <Grid Width="30" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border x:Name="CalendarDayCircle3" Width="26" Height="26"
+                                                CornerRadius="13" Background="Transparent"
                                                 BorderBrush="Transparent" BorderThickness="1.5"
-                                                HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                 Cursor="Hand">
                                             <TextBlock x:Name="CalendarDayText3" Style="{StaticResource CalendarDayText}"/>
                                         </Border>
@@ -430,43 +425,43 @@
                                                  VerticalAlignment="Bottom" Margin="0,0,0,0"
                                                  Visibility="Collapsed"/>
                                     </Grid>
-                                    <Grid Width="28" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Grid Width="30" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <Border x:Name="CalendarDayCircle4" Width="26" Height="26"
                                                 CornerRadius="13" Background="Transparent"
                                                 BorderBrush="Transparent" BorderThickness="1.5"
-                                                HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                 Cursor="Hand">
                                             <TextBlock x:Name="CalendarDayText4" Style="{StaticResource CalendarDayText}"/>
                                         </Border>
                                         <Ellipse x:Name="CalendarNoteDot4" Width="4" Height="4"
                                                  Fill="#0A84FF" HorizontalAlignment="Center"
-                                                 VerticalAlignment="Bottom" Margin="0,0,0,1"
+                                                 VerticalAlignment="Bottom" Margin="0,0,0,0"
                                                  Visibility="Collapsed"/>
                                     </Grid>
-                                    <Grid Width="28" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Grid Width="30" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <Border x:Name="CalendarDayCircle5" Width="26" Height="26"
                                                 CornerRadius="13" Background="Transparent"
                                                 BorderBrush="Transparent" BorderThickness="1.5"
-                                                HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                 Cursor="Hand">
                                             <TextBlock x:Name="CalendarDayText5" Style="{StaticResource CalendarDayText}"/>
                                         </Border>
                                         <Ellipse x:Name="CalendarNoteDot5" Width="4" Height="4"
                                                  Fill="#0A84FF" HorizontalAlignment="Center"
-                                                 VerticalAlignment="Bottom" Margin="0,0,0,1"
+                                                 VerticalAlignment="Bottom" Margin="0,0,0,0"
                                                  Visibility="Collapsed"/>
                                     </Grid>
-                                    <Grid Width="28" Height="30" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Grid Width="30" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <Border x:Name="CalendarDayCircle6" Width="26" Height="26"
                                                 CornerRadius="13" Background="Transparent"
                                                 BorderBrush="Transparent" BorderThickness="1.5"
-                                                HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                 Cursor="Hand">
                                             <TextBlock x:Name="CalendarDayText6" Style="{StaticResource CalendarDayText}"/>
                                         </Border>
                                         <Ellipse x:Name="CalendarNoteDot6" Width="4" Height="4"
                                                  Fill="#0A84FF" HorizontalAlignment="Center"
-                                                 VerticalAlignment="Bottom" Margin="0,0,0,1"
+                                                 VerticalAlignment="Bottom" Margin="0,0,0,0"
                                                  Visibility="Collapsed"/>
                                     </Grid>
                                 </UniformGrid>
