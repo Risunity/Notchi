@@ -62,6 +62,8 @@ namespace WindowsNotch
         private Border? _lyricsBottomSpacer;
 
         private CancellationTokenSource? _lyricsCts;
+        private DispatcherTimer? _lyricsDebounceTimer;
+        private MediaInfo? _pendingLyricsMedia;
         private MediaInfo? _media;
         private string _lyricsKey = string.Empty;
         private int _activeLyricIndex = -1;
@@ -198,6 +200,7 @@ namespace WindowsNotch
         {
             _progressTimer.Stop();
             _visualizerTimer.Stop();
+            _lyricsDebounceTimer?.Stop();
             _smtc.MediaChanged -= OnMediaChanged;
             CancelLyrics();
             _lyrics.Dispose();
@@ -731,7 +734,7 @@ namespace WindowsNotch
                 Color.FromArgb(0xB4, _accentColor.R, _accentColor.G, _accentColor.B));
             _accentSoftBrush.Freeze();
 
-            ProgressSlider.Foreground = _accentBrush;
+            ProgressSlider.Foreground = Brushes.White;
 
             foreach (var bar in _visualizerBars)
             {
@@ -830,6 +833,23 @@ namespace WindowsNotch
 
         private void BeginLyricsLoad(MediaInfo media)
         {
+            // Store the pending media and use a debounce timer to avoid fetching
+            // lyrics for stale/intermediate SMTC states (common with Chrome, which
+            // fires MediaPropertiesChanged before its metadata is fully settled).
+            _pendingLyricsMedia = media;
+
+            if (_lyricsDebounceTimer == null)
+            {
+                _lyricsDebounceTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(700)
+                };
+                _lyricsDebounceTimer.Tick += OnLyricsDebounce;
+            }
+
+            // Reset the timer on every call so we only fetch after the last update.
+            _lyricsDebounceTimer.Stop();
+
             CancelLyrics();
             _activeLyricIndex = -1;
             _lyricRows.Clear();
@@ -844,9 +864,27 @@ namespace WindowsNotch
                 return;
             }
 
+            ShowLoading();
+            _lyricsDebounceTimer.Start();
+        }
+
+        private void OnLyricsDebounce(object? sender, EventArgs e)
+        {
+            _lyricsDebounceTimer?.Stop();
+
+            var media = _pendingLyricsMedia;
+            if (media == null) return;
+
+            // If the current key no longer matches, the track changed again during
+            // the debounce window — do nothing; a new debounce cycle is already running.
+            if (!string.Equals(_lyricsKey, LyricsService.BuildCacheKey(media),
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
             var cts = new CancellationTokenSource();
             _lyricsCts = cts;
-            ShowLoading();
             _ = LoadLyricsAsync(media, cts.Token);
         }
 
